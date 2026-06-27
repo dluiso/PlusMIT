@@ -1,32 +1,133 @@
-# Deployment
+# Debian 12 Production Deployment
 
-Target: Debian or Ubuntu VM behind Cloudflare Tunnel.
+Target domain: `plusmit.com`
 
-1. Install Docker:
+Target server: fresh Debian 12 VM behind Cloudflare Tunnel or another TLS reverse proxy.
+
+## 1. Prepare DNS
+
+Point `plusmit.com` to the server or route it through Cloudflare Tunnel. The app listens locally on port `3000`.
+
+## 2. Install Server Packages
 
 ```bash
 sudo apt update
-sudo apt install -y ca-certificates curl gnupg
+sudo apt install -y ca-certificates curl git gnupg openssl
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker "$USER"
 ```
 
-2. Clone the repository.
-3. Run:
+Log out and back in, or run:
 
 ```bash
+newgrp docker
+```
+
+Verify Docker Compose:
+
+```bash
+docker compose version
+```
+
+## 3. Clone and Install
+
+```bash
+git clone https://github.com/dluiso/PlusMIT.git
+cd PlusMIT
 chmod +x scripts/*.sh
 ./scripts/install.sh
 ```
 
-4. Complete `/setup`.
-5. Protect `/admin` and `/setup` with Cloudflare Access.
+Use these production values when prompted:
+
+- Production domain: `https://plusmit.com`
+- Database name: `plusmit`
+- Database user: `plusmit`
+- Database password: leave blank to generate, or provide a strong alphanumeric password.
+- GA4, GTM, Turnstile, and SMTP: leave blank until the real provider values are ready.
+
+The installer creates `.env`, builds the app image, starts PostgreSQL, runs migrations, seeds starter content, and starts the web app.
+
+## 4. Cloudflare Tunnel Example
+
+Install `cloudflared` using Cloudflare's Debian instructions, then run:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create plusmit
+cloudflared tunnel route dns plusmit plusmit.com
+sudo mkdir -p /etc/cloudflared
+sudo nano /etc/cloudflared/config.yml
+```
+
+Use this config shape:
+
+```yaml
+tunnel: plusmit
+credentials-file: /root/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: plusmit.com
+    service: http://localhost:3000
+  - hostname: www.plusmit.com
+    service: http://localhost:3000
+  - service: http_status:404
+```
+
+Then install and start the tunnel service:
+
+```bash
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
+sudo systemctl status cloudflared --no-pager
+```
+
+Protect `/admin` and `/setup` with Cloudflare Access before creating real content.
+
+## 5. First Run
+
+Open:
+
+```text
+https://plusmit.com/setup
+```
+
+Create the first admin user. After setup is complete, use:
+
+```text
+https://plusmit.com/admin
+```
+
+## 6. Smoke Checks
+
+```bash
+docker compose ps
+curl -I http://localhost:3000
+curl -I http://localhost:3000/admin
+curl -I https://plusmit.com
+```
+
+## 7. Updates
 
 For updates:
 
 ```bash
 git pull
 ./scripts/update.sh
+```
+
+## 8. Backups
+
+Create a database backup:
+
+```bash
+./scripts/backup-db.sh
+```
+
+Restore a database backup:
+
+```bash
+./scripts/restore-db.sh backups/<backup-file>.sql.gz
 ```
 
 Do not commit `.env`. Do not bake secrets into Docker images.

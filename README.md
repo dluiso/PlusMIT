@@ -32,14 +32,18 @@ npm.cmd run dev
 
 ## Production
 
-Use a Debian or Ubuntu VM with Docker Compose. Run:
+Use a fresh Debian 12 VM with Docker Compose. The production domain is `https://plusmit.com`.
 
 ```bash
+git clone https://github.com/dluiso/PlusMIT.git
+cd PlusMIT
 chmod +x scripts/*.sh
 ./scripts/install.sh
 ```
 
 The installer creates a private `.env`, starts Docker Compose, runs migrations, seeds starter content, and prints the setup URL.
+
+Detailed server instructions are in `docs/deployment.md`.
 
 ## Commands
 

@@ -12,6 +12,10 @@ secret() {
   openssl rand -base64 48 | tr -d '\n'
 }
 
+db_secret() {
+  openssl rand -hex 24 | tr -d '\n'
+}
+
 need docker
 need openssl
 docker compose version >/dev/null
@@ -21,13 +25,15 @@ if [ -f .env ]; then
   [ "$overwrite" = "YES" ] || exit 1
 fi
 
-read -r -p "Production domain, including https://: " site_url
+read -r -p "Production domain, including https:// [https://plusmit.com]: " site_url
+site_url=${site_url:-https://plusmit.com}
 read -r -p "Database name [plusmit]: " db_name
 db_name=${db_name:-plusmit}
 read -r -p "Database user [plusmit]: " db_user
 db_user=${db_user:-plusmit}
-read -r -s -p "Database password: " db_pass
+read -r -s -p "Database password [leave blank to generate]: " db_pass
 echo
+db_pass=${db_pass:-$(db_secret)}
 read -r -p "GA4 Measurement ID (optional): " ga_id
 read -r -p "Google Tag Manager ID (optional): " gtm_id
 read -r -p "Cloudflare Turnstile Site Key (optional): " turnstile_site
@@ -64,9 +70,11 @@ EOF
 
 chmod 600 .env
 
-docker compose up -d --build
-docker compose exec app npm run migrate
-docker compose exec app npm run seed
+docker compose build
+docker compose up -d postgres
+docker compose run --rm cli npm run migrate
+docker compose run --rm cli npm run seed
+docker compose up -d app
 
 echo "Setup URL: ${site_url}/setup"
 echo "Admin URL after setup: ${site_url}/admin"
