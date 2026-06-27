@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { AdminViewServerProps, CollectionSlug, Payload } from 'payload'
-import type { LeadSubmission } from '@/types/payload-types'
 
 type CountSlug = Extract<
   CollectionSlug,
@@ -13,7 +12,12 @@ type DashboardMetric = {
   slug: CountSlug
 }
 
-type LatestLead = Pick<LeadSubmission, 'createdAt' | 'email' | 'formSource' | 'status'>
+type LatestLead = {
+  createdAt?: string
+  email?: string
+  formSource?: number | { name?: string } | null
+  status?: string | null
+}
 
 const metrics: DashboardMetric[] = [
   { label: 'Pages', slug: 'pages', href: '/admin/collections/pages' },
@@ -50,7 +54,7 @@ async function getLatestLeads(payload: Payload): Promise<LatestLead[]> {
       sort: '-createdAt',
     })
 
-    return result.docs
+    return result.docs as LatestLead[]
   } catch {
     return []
   }
@@ -94,7 +98,7 @@ function formatDate(value?: string) {
 
 function getLeadFormSource(lead: LatestLead) {
   if (typeof lead.formSource === 'object' && lead.formSource && 'name' in lead.formSource) {
-    return lead.formSource.name
+    return lead.formSource.name || 'Website form'
   }
 
   return 'Website form'
