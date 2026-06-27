@@ -33,7 +33,10 @@ const csp = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  compress: true,
   output: 'standalone',
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
   reactStrictMode: true,
   typedRoutes: false,
   async headers() {

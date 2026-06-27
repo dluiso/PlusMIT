@@ -22,8 +22,8 @@ export default async function ResourcePage({ params }: Args) {
   return (
     <article className="container max-w-3xl py-16">
       <h1 className="text-5xl font-black">{post.title}</h1>
-      <p className="mt-5 text-xl text-slate-300">{post.excerpt}</p>
-      <div className="surface mt-10 whitespace-pre-line p-6 leading-8 text-slate-300">{post.content}</div>
+      <p className="mt-5 text-xl text-[var(--color-muted)]">{post.excerpt}</p>
+      <div className="surface mt-10 whitespace-pre-line p-6 leading-8 text-[var(--color-muted)]">{post.content}</div>
     </article>
   )
 }

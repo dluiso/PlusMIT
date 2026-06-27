@@ -37,4 +37,10 @@ sudo cloudflared service install
 sudo systemctl enable --now cloudflared
 ```
 
-Use Cloudflare Zero Trust Access policies to protect `/admin` and `/setup`. Troubleshoot with `systemctl status cloudflared`, tunnel logs, DNS records, and `docker compose ps`.
+Use Cloudflare Zero Trust Access policies to protect:
+
+- `/admin*`
+- `/setup*`
+- any future fixed admin route configured in code
+
+Keep the website's required public routes reachable, including `/api/public-settings`, public media files, and public form submissions. Troubleshoot with `systemctl status cloudflared`, tunnel logs, DNS records, and `docker compose ps`.

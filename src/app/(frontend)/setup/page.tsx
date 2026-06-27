@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { seedContent } from '@/seed/seed-content'
 import { getPayloadClient } from '@/lib/payload'
+import { ADMIN_ROUTE } from '@/lib/admin-route'
 
 const setupSchema = z.object({
   adminName: z.string().min(2),
@@ -34,7 +35,7 @@ async function completeSetup(formData: FormData) {
   'use server'
 
   const payload = await getPayloadClient()
-  if (!(await setupAvailable())) redirect('/admin')
+  if (!(await setupAvailable())) redirect(ADMIN_ROUTE)
 
   const parsed = setupSchema.parse({
     adminName: formData.get('adminName'),
@@ -117,18 +118,18 @@ async function completeSetup(formData: FormData) {
   })
 
   revalidatePath('/', 'layout')
-  redirect('/admin')
+  redirect(ADMIN_ROUTE)
 }
 
 export default async function SetupPage() {
-  if (!(await setupAvailable())) redirect('/admin')
+  if (!(await setupAvailable())) redirect(ADMIN_ROUTE)
 
   return (
     <main className="container py-12">
       <div className="mb-8 max-w-3xl">
-        <p className="mb-3 text-sm font-bold uppercase tracking-wider text-cyan-300">First-run setup</p>
+        <p className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">First-run setup</p>
         <h1 className="text-5xl font-black">Configure PlusMIT CMS</h1>
-        <p className="mt-4 text-slate-300">
+        <p className="mt-4 text-[var(--color-muted)]">
           This route locks after setup is completed. Secrets are configured through environment variables and are never displayed here.
         </p>
       </div>
@@ -149,8 +150,8 @@ export default async function SetupPage() {
           <label className="field"><span>GA4 Measurement ID</span><input name="gaMeasurementId" /></label>
           <label className="field"><span>Google Tag Manager ID</span><input name="gtmId" /></label>
         </div>
-        <label className="flex gap-3 text-sm text-slate-300"><input name="seedStarterContent" type="checkbox" defaultChecked /> Seed starter content</label>
-        <label className="flex gap-3 text-sm text-slate-300"><input name="publishStarterContent" type="checkbox" defaultChecked /> Publish starter pages immediately</label>
+        <label className="flex gap-3 text-sm text-[var(--color-muted)]"><input name="seedStarterContent" type="checkbox" defaultChecked /> Seed starter content</label>
+        <label className="flex gap-3 text-sm text-[var(--color-muted)]"><input name="publishStarterContent" type="checkbox" defaultChecked /> Publish starter pages immediately</label>
         <button className="button">Complete Setup</button>
       </form>
     </main>

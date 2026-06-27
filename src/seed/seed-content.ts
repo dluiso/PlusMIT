@@ -83,6 +83,21 @@ const pageBlocks = {
   ],
 }
 
+const defaultFormFields = [
+  { name: 'name', label: 'Name', type: 'text', required: true },
+  { name: 'email', label: 'Email', type: 'email', required: true },
+  { name: 'phone', label: 'Phone', type: 'tel', required: false },
+  { name: 'organization', label: 'Organization', type: 'text', required: false },
+  {
+    name: 'requestedService',
+    label: 'Requested Service',
+    type: 'select',
+    required: false,
+    options: services.slice(0, 8).map(([label]) => ({ label })),
+  },
+  { name: 'message', label: 'Message', type: 'textarea', required: true },
+]
+
 async function upsert<T extends Record<string, unknown>>(
   payload: Payload,
   collection: string,
@@ -143,7 +158,7 @@ export async function seedContent({ payload, publish = true, companyName = 'Plus
   ]
 
   for (const [name, slug, confirmationMessage] of forms) {
-    await upsert(payload, 'forms', { slug: { equals: slug } }, { name, slug, confirmationMessage, active: true })
+    await upsert(payload, 'forms', { slug: { equals: slug } }, { name, slug, confirmationMessage, active: true, fields: defaultFormFields })
   }
 
   await upsert(payload, 'navigation', { slug: { equals: 'main' } }, {

@@ -1,6 +1,6 @@
 # Content Management
 
-Use `/admin` to manage:
+Use the configured admin route, `/admin` by default, to manage:
 
 - Pages and flexible blocks
 - Services and industries

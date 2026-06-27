@@ -10,9 +10,15 @@ import { getPublicSettings, themeStyle } from '@/lib/public-settings'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'PlusMIT',
-  description: 'Modern IT support, automation, cloud, web, and recovery services.',
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicSettings()
+
+  return {
+    title: settings.site.companyName,
+    description: settings.site.tagline,
+    metadataBase: new URL(settings.site.primaryDomain),
+    icons: settings.branding.favicon?.url ? { icon: settings.branding.favicon.url } : undefined,
+  }
 }
 
 async function getNavigation(location: 'main' | 'mobile' | 'footer') {
@@ -38,12 +44,17 @@ export default async function FrontendLayout({ children }: { children: React.Rea
 
   if (settings.site.maintenanceMode) {
     return (
-      <html lang="en" style={themeStyle(settings)} suppressHydrationWarning>
+      <html
+        data-theme={settings.branding.defaultThemeMode}
+        lang="en"
+        style={themeStyle(settings)}
+        suppressHydrationWarning
+      >
         <body suppressHydrationWarning>
           <main className="container grid min-h-screen place-items-center py-20">
             <div className="surface max-w-xl p-8 text-center">
               <h1 className="text-3xl font-bold">Maintenance in progress</h1>
-              <p className="mt-4 text-slate-300">{settings.site.maintenanceMessage}</p>
+              <p className="mt-4 text-[var(--color-muted)]">{settings.site.maintenanceMessage}</p>
             </div>
           </main>
         </body>
@@ -52,7 +63,12 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   }
 
   return (
-    <html lang="en" style={themeStyle(settings)} suppressHydrationWarning>
+    <html
+      data-theme={settings.branding.defaultThemeMode}
+      lang="en"
+      style={themeStyle(settings)}
+      suppressHydrationWarning
+    >
       <body suppressHydrationWarning>
         <Analytics
           enabled={settings.site.analytics.enabled}
@@ -61,7 +77,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
         />
         {settings.site.announcementEnabled && settings.site.announcementText ? (
           <a
-            className="block border-b border-cyan-300/20 bg-cyan-400 px-4 py-2 text-center text-sm font-semibold text-slate-950"
+            className="block border-b border-cyan-300/20 bg-[var(--color-primary)] px-4 py-2 text-center text-sm font-semibold text-[var(--color-bg)]"
             href={settings.site.announcementLink || '#'}
           >
             {settings.site.announcementText}
@@ -72,11 +88,17 @@ export default async function FrontendLayout({ children }: { children: React.Rea
           ctaLabel={settings.site.defaultCtaLabel}
           ctaUrl={settings.site.defaultCtaUrl}
           items={mainNav}
+          logo={
+            settings.branding.defaultThemeMode === 'dark'
+              ? settings.branding.darkLogo || settings.branding.logo
+              : settings.branding.logo || settings.branding.darkLogo
+          }
         />
         <main>{children}</main>
         <Footer
           companyName={settings.site.companyName}
           footerText={settings.site.footerText}
+          tagline={settings.site.tagline}
           legalLinks={settings.site.legalLinks}
           socialLinks={settings.site.socialLinks}
           publicEmail={settings.site.publicEmail}
@@ -87,7 +109,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
           ctaUrl={settings.site.defaultCtaUrl}
           items={mobileNav}
         />
-        <ConsentBanner enabled={settings.site.analytics.enabled} />
+        <ConsentBanner companyName={settings.site.companyName} enabled={settings.site.analytics.enabled} />
       </body>
     </html>
   )

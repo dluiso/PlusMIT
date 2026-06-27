@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-export function ConsentBanner({ enabled }: { enabled: boolean }) {
+export function ConsentBanner({ companyName = 'PlusMIT', enabled }: { companyName?: string; enabled: boolean }) {
   const [visible, setVisible] = useState(() =>
     typeof window !== 'undefined'
       ? enabled && localStorage.getItem('plusmit-analytics-consent') !== 'accepted'
@@ -19,10 +19,10 @@ export function ConsentBanner({ enabled }: { enabled: boolean }) {
   if (!visible) return null
 
   return (
-    <div className="fixed bottom-20 left-3 right-3 z-50 mx-auto max-w-3xl rounded-lg border border-slate-700 bg-slate-950 p-4 shadow-2xl md:bottom-4">
+    <div className="fixed bottom-20 left-3 right-3 z-50 mx-auto max-w-3xl rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-2xl md:bottom-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-slate-200">
-          PlusMIT uses privacy-conscious analytics when enabled to improve the website experience.
+        <p className="text-sm text-[var(--color-muted)]">
+          {companyName} uses privacy-conscious analytics when enabled to improve the website experience.
         </p>
         <button
           className="button"

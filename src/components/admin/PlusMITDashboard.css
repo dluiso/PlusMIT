@@ -157,6 +157,47 @@
   gap: 10px;
 }
 
+.plusmit-dashboard__healthGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plusmit-dashboard__healthGrid div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.plusmit-dashboard__healthGrid span,
+.plusmit-dashboard__checkList span {
+  color: var(--theme-elevation-600);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plusmit-dashboard__healthGrid strong {
+  font-size: 28px;
+}
+
+.plusmit-dashboard__checkList {
+  display: grid;
+  gap: 10px;
+}
+
+.plusmit-dashboard__checkList span {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.plusmit-dashboard__checkList span[data-ready='true'] {
+  border-color: var(--theme-success-500);
+  color: var(--theme-text);
+}
+
 .plusmit-dashboard__empty {
   border: 1px dashed var(--theme-elevation-200);
   border-radius: 8px;
@@ -204,6 +245,7 @@
 
   .plusmit-dashboard__metrics,
   .plusmit-dashboard__quickLinks,
+  .plusmit-dashboard__healthGrid,
   .plusmit-dashboard__status {
     grid-template-columns: 1fr;
   }

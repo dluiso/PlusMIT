@@ -12,7 +12,10 @@ Security controls are implemented at several layers.
 
 Operational recommendations:
 
-- Put `/admin` and `/setup` behind Cloudflare Access.
+- Put `/admin*`, `/setup*`, and any future fixed admin route behind Cloudflare Access.
+- Keep public endpoints available when needed: `/api/public-settings`, public media files, and public form submissions are required by the website.
+- If you change `PAYLOAD_ADMIN_ROUTE`, make the same fixed route change in the Next App Router payload admin folder before deploying. Do not make the admin route editable from the CMS.
+- Add Cloudflare WAF/rate limiting for login, setup, and form submission paths.
 - Use long unique secrets.
 - Rotate SMTP and database credentials if exposed.
 - Keep Docker host packages updated.

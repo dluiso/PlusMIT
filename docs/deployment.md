@@ -82,7 +82,7 @@ sudo systemctl enable --now cloudflared
 sudo systemctl status cloudflared --no-pager
 ```
 
-Protect `/admin` and `/setup` with Cloudflare Access before creating real content.
+Protect `/admin*` and `/setup*` with Cloudflare Access before creating real content. If you later choose a fixed custom admin route, protect that path as well.
 
 ## 5. First Run
 
@@ -98,6 +98,8 @@ Create the first admin user. After setup is complete, use:
 https://plusmit.com/admin
 ```
 
+`PAYLOAD_ADMIN_ROUTE` defaults to `/admin`. Changing it is a code/deploy change, not a CMS setting. The Payload admin route and the Next App Router payload admin folder must be changed together.
+
 ## 6. Smoke Checks
 
 ```bash
@@ -106,6 +108,8 @@ curl -I http://localhost:3000
 curl -I http://localhost:3000/admin
 curl -I https://plusmit.com
 ```
+
+Static assets and uploaded media are intended to be cached by the browser/CDN. After changing logo, favicon, or media-heavy content, purge Cloudflare cache if the old asset remains visible.
 
 ## 7. Updates
 

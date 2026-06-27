@@ -16,7 +16,7 @@ export default async function CaseStudiesPage() {
         {studies.docs.map((study) => (
           <a className="surface p-5" href={`/case-studies/${study.slug}`} key={study.id}>
             <h2 className="text-xl font-bold">{study.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">{study.challenge}</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{study.challenge}</p>
           </a>
         ))}
       </div>

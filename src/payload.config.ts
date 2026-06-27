@@ -6,6 +6,7 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 import { collections } from './collections'
 import { globals } from './globals'
+import { ADMIN_ROUTE } from './lib/admin-route'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -28,6 +29,9 @@ export default buildConfig({
     meta: {
       titleSuffix: '- PlusMIT CMS',
     },
+  },
+  routes: {
+    admin: ADMIN_ROUTE,
   },
   collections,
   globals,

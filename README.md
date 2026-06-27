@@ -62,7 +62,7 @@ Private variables such as `DATABASE_URL`, `PAYLOAD_SECRET`, SMTP credentials, an
 
 ## Setup Wizard
 
-The `/setup` route is available only before setup completion or when no primary admin exists. It creates the first super admin, writes safe public site settings, optionally seeds content, marks setup completed, and redirects to `/admin`.
+The `/setup` route is available only before setup completion or when no primary admin exists. It creates the first super admin, writes safe public site settings, optionally seeds content, marks setup completed, and redirects to the configured admin route.
 
 To reset setup in development or recovery, update `site-settings.setupCompleted` directly through a trusted server-side Payload script or database console. Do not expose a public reset route.
 
@@ -77,7 +77,7 @@ Frontend marketing content is loaded from Payload documents. Seed testimonials a
 - `npm run build`
 - `docker compose build`
 - `/setup` locks after completion
-- `/admin` requires authentication
+- `/admin` requires authentication and should also be protected by Cloudflare Access in production
 - `/api/public-settings` contains no secrets
 - Contact forms create lead submissions
 - Sitemap and robots render

@@ -83,6 +83,10 @@ export const Media: CollectionConfig = {
   upload: {
     staticDir: mediaStaticDir,
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'],
+    modifyResponseHeaders: ({ headers }) => {
+      headers.set('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400')
+      return headers
+    },
     imageSizes: [
       { name: 'card', width: 720, height: 480, crop: 'center' },
       { name: 'hero', width: 1600, height: 900, crop: 'center' },

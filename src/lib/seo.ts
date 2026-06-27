@@ -21,7 +21,8 @@ export async function buildMetadata(doc?: SeoDoc | null | any): Promise<Metadata
   const description =
     doc?.seo?.description ||
     settings.site.tagline ||
-    'PlusMIT helps organizations modernize, secure, and automate IT operations.'
+    `${settings.site.companyName} helps organizations modernize, secure, and automate IT operations.`
+  const openGraphImage = settings.site.defaultOpenGraphImage?.url
 
   return {
     title,
@@ -35,12 +36,14 @@ export async function buildMetadata(doc?: SeoDoc | null | any): Promise<Metadata
     openGraph: {
       title: doc?.seo?.openGraphTitle || title,
       description: doc?.seo?.openGraphDescription || description,
+      images: openGraphImage ? [{ url: openGraphImage }] : undefined,
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: openGraphImage ? [openGraphImage] : undefined,
     },
     verification: settings.site.analytics.searchConsoleVerification
       ? { google: settings.site.analytics.searchConsoleVerification }

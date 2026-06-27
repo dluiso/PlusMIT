@@ -16,7 +16,7 @@ export default async function ResourcesPage() {
         {posts.docs.map((post) => (
           <a className="surface p-5" href={`/resources/${post.slug}`} key={post.id}>
             <h2 className="text-xl font-bold">{post.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">{post.excerpt}</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{post.excerpt}</p>
           </a>
         ))}
       </div>

@@ -5,31 +5,30 @@ export function Footer({
   socialLinks,
   publicEmail,
   phoneNumber,
+  tagline,
 }: {
   companyName: string
   footerText?: string
+  tagline?: string
   legalLinks?: { label?: string; url?: string }[]
   socialLinks?: { label?: string; url?: string }[]
   publicEmail?: string
   phoneNumber?: string
 }) {
   return (
-    <footer className="mt-20 border-t border-white/10 py-10">
+    <footer className="mt-20 border-t border-[var(--color-border)] py-10">
       <div className="container grid gap-8 md:grid-cols-[2fr_1fr_1fr]">
         <div>
           <div className="mb-3 text-lg font-bold">{companyName}</div>
-          <p className="max-w-2xl text-sm leading-6 text-slate-300">
-            {footerText ||
-              'Modern IT support, cloud, automation, web implementation, hosting, and recovery services for organizations that need dependable technology operations.'}
-          </p>
+          <p className="max-w-2xl text-sm leading-6 text-[var(--color-muted)]">{footerText || tagline}</p>
         </div>
-        <div className="grid gap-2 text-sm text-slate-300">
-          <strong className="text-slate-100">Contact</strong>
+        <div className="grid gap-2 text-sm text-[var(--color-muted)]">
+          <strong className="text-[var(--color-text)]">Contact</strong>
           {publicEmail ? <a href={`mailto:${publicEmail}`}>{publicEmail}</a> : null}
           {phoneNumber ? <a href={`tel:${phoneNumber}`}>{phoneNumber}</a> : null}
         </div>
-        <div className="grid gap-2 text-sm text-slate-300">
-          <strong className="text-slate-100">Links</strong>
+        <div className="grid gap-2 text-sm text-[var(--color-muted)]">
+          <strong className="text-[var(--color-text)]">Links</strong>
           {legalLinks?.map((link) => (
             <a key={`${link.label}-${link.url}`} href={link.url || '#'}>
               {link.label}
