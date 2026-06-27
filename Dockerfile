@@ -26,6 +26,8 @@ RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder /app/node_modules/@img ./node_modules/@img
 RUN mkdir -p /app/media /app/backups && chown -R nextjs:nextjs /app
 USER nextjs
 EXPOSE 3000
