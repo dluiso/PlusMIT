@@ -1,7 +1,7 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 
 const isDev = process.env.NODE_ENV !== 'production'
-const hsts = 'max-age=31536000; includeSubDomains'
+const hsts = 'max-age=31536000'
 
 const csp = [
   "default-src 'self'",
