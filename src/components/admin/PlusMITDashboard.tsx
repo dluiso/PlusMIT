@@ -1,10 +1,13 @@
 import Link from 'next/link'
-import type { AdminViewServerProps, CollectionSlug, Payload } from 'payload'
+import type { AdminViewServerProps } from 'payload'
 
-type CountSlug = Extract<
-  CollectionSlug,
-  'case-studies' | 'industries' | 'lead-submissions' | 'media' | 'pages' | 'posts' | 'services' | 'testimonials'
->
+type CountSlug = 'case-studies' | 'industries' | 'lead-submissions' | 'media' | 'pages' | 'posts' | 'services' | 'testimonials'
+
+type DashboardPayload = {
+  count: (options: { collection: CountSlug }) => Promise<{ totalDocs: number }>
+  find: (options: { collection: 'lead-submissions'; limit: number; sort: string }) => Promise<{ docs: LatestLead[] }>
+  findGlobal: (options: { slug: 'branding' | 'site-settings' }) => Promise<Record<string, unknown>>
+}
 
 type DashboardMetric = {
   href: string
@@ -37,7 +40,7 @@ const quickLinks = [
   { label: 'Branding', href: '/admin/globals/branding', description: 'Logo, colors, radius, and theme presets.' },
 ]
 
-async function safeCount(payload: Payload, slug: CountSlug) {
+async function safeCount(payload: DashboardPayload, slug: CountSlug) {
   try {
     const result = await payload.count({ collection: slug })
     return result.totalDocs
@@ -46,7 +49,7 @@ async function safeCount(payload: Payload, slug: CountSlug) {
   }
 }
 
-async function getLatestLeads(payload: Payload): Promise<LatestLead[]> {
+async function getLatestLeads(payload: DashboardPayload): Promise<LatestLead[]> {
   try {
     const result = await payload.find({
       collection: 'lead-submissions',
@@ -54,13 +57,17 @@ async function getLatestLeads(payload: Payload): Promise<LatestLead[]> {
       sort: '-createdAt',
     })
 
-    return result.docs as LatestLead[]
+    return result.docs
   } catch {
     return []
   }
 }
 
-async function getSetupStatus(payload: Payload) {
+function getStringValue(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.length > 0 ? value : fallback
+}
+
+async function getSetupStatus(payload: DashboardPayload) {
   try {
     const [siteSettings, branding] = await Promise.all([
       payload.findGlobal({ slug: 'site-settings' }),
@@ -68,11 +75,11 @@ async function getSetupStatus(payload: Payload) {
     ])
 
     return {
-      companyName: siteSettings.companyName || 'PlusMIT',
-      domain: siteSettings.primaryDomain || process.env.NEXT_PUBLIC_SITE_URL || 'Not set',
-      publicEmail: siteSettings.publicEmail || 'Not set',
-      ctaLabel: siteSettings.defaultCtaLabel || 'Not set',
-      themeMode: branding.defaultThemeMode || 'dark',
+      companyName: getStringValue(siteSettings.companyName, 'PlusMIT'),
+      domain: getStringValue(siteSettings.primaryDomain, process.env.NEXT_PUBLIC_SITE_URL || 'Not set'),
+      publicEmail: getStringValue(siteSettings.publicEmail, 'Not set'),
+      ctaLabel: getStringValue(siteSettings.defaultCtaLabel, 'Not set'),
+      themeMode: getStringValue(branding.defaultThemeMode, 'dark'),
     }
   } catch {
     return {
@@ -105,7 +112,7 @@ function getLeadFormSource(lead: LatestLead) {
 }
 
 export async function PlusMITDashboard(props: AdminViewServerProps) {
-  const payload = props.initPageResult.req.payload
+  const payload = props.initPageResult.req.payload as unknown as DashboardPayload
   const [counts, latestLeads, setup] = await Promise.all([
     Promise.all(metrics.map(async (metric) => [metric.slug, await safeCount(payload, metric.slug)] as const)),
     getLatestLeads(payload),
