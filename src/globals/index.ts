@@ -6,7 +6,7 @@ export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site Settings',
   admin: {
-    group: 'Site',
+    group: 'Website',
     description: 'Public company, contact, SEO, analytics, footer, announcement, and maintenance settings.',
   },
   access: {
@@ -67,7 +67,7 @@ export const Branding: GlobalConfig = {
   slug: 'branding',
   label: 'Branding / Theme Settings',
   admin: {
-    group: 'Site',
+    group: 'Website',
     description: 'Logo, favicon, colors, typography, and safe CSS variable values.',
   },
   access: {

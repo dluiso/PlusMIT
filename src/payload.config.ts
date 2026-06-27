@@ -14,8 +14,16 @@ export default buildConfig({
   admin: {
     user: 'users',
     suppressHydrationWarning: true,
+    theme: 'all',
     importMap: {
       baseDir: path.resolve(dirname),
+    },
+    components: {
+      views: {
+        dashboard: {
+          Component: '@/components/admin/PlusMITDashboard#PlusMITDashboard',
+        },
+      },
     },
     meta: {
       titleSuffix: '- PlusMIT CMS',

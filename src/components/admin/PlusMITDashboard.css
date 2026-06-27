@@ -1,0 +1,210 @@
+.plusmit-dashboard {
+  display: grid;
+  gap: 24px;
+  max-width: 1180px;
+  padding: 8px 0 48px;
+}
+
+.plusmit-dashboard * {
+  box-sizing: border-box;
+}
+
+.plusmit-dashboard__hero,
+.plusmit-dashboard__panel,
+.plusmit-dashboard__status {
+  border: 1px solid var(--theme-elevation-150);
+  background: var(--theme-elevation-50);
+  border-radius: 10px;
+  box-shadow: 0 18px 48px rgb(15 23 42 / 8%);
+}
+
+.plusmit-dashboard__hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+}
+
+.plusmit-dashboard__eyebrow {
+  margin: 0 0 8px;
+  color: var(--theme-success-500);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.plusmit-dashboard h1 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(32px, 5vw, 54px);
+  line-height: 1;
+}
+
+.plusmit-dashboard h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.plusmit-dashboard p {
+  margin: 10px 0 0;
+  color: var(--theme-elevation-650);
+}
+
+.plusmit-dashboard__heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.plusmit-dashboard__button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 7px;
+  color: var(--theme-text);
+  font-weight: 700;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.plusmit-dashboard__button--primary {
+  border-color: transparent;
+  background: var(--theme-success-500);
+  color: var(--theme-bg);
+}
+
+.plusmit-dashboard__metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.plusmit-dashboard__metric {
+  display: grid;
+  min-height: 108px;
+  align-content: space-between;
+  border: 1px solid var(--theme-elevation-150);
+  background: var(--theme-elevation-50);
+  border-radius: 10px;
+  color: var(--theme-text);
+  padding: 18px;
+  text-decoration: none;
+}
+
+.plusmit-dashboard__metric span,
+.plusmit-dashboard__status span {
+  color: var(--theme-elevation-600);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plusmit-dashboard__metric strong {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.plusmit-dashboard__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+  gap: 16px;
+}
+
+.plusmit-dashboard__panel {
+  padding: 22px;
+}
+
+.plusmit-dashboard__panelHeader {
+  margin-bottom: 18px;
+}
+
+.plusmit-dashboard__quickLinks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plusmit-dashboard__quickLinks a,
+.plusmit-dashboard__leadList a {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  color: var(--theme-text);
+  padding: 14px;
+  text-decoration: none;
+}
+
+.plusmit-dashboard__quickLinks a:hover,
+.plusmit-dashboard__leadList a:hover,
+.plusmit-dashboard__metric:hover {
+  border-color: var(--theme-success-500);
+}
+
+.plusmit-dashboard__quickLinks span,
+.plusmit-dashboard__leadList span,
+.plusmit-dashboard__leadList small {
+  color: var(--theme-elevation-600);
+}
+
+.plusmit-dashboard__leadList {
+  display: grid;
+  gap: 10px;
+}
+
+.plusmit-dashboard__empty {
+  border: 1px dashed var(--theme-elevation-200);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.plusmit-dashboard__status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+}
+
+.plusmit-dashboard__status div {
+  display: grid;
+  gap: 6px;
+  background: var(--theme-elevation-50);
+  padding: 18px;
+}
+
+.plusmit-dashboard__status strong {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .plusmit-dashboard__metrics,
+  .plusmit-dashboard__status {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .plusmit-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .plusmit-dashboard__hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .plusmit-dashboard__heroActions {
+    justify-content: flex-start;
+  }
+
+  .plusmit-dashboard__metrics,
+  .plusmit-dashboard__quickLinks,
+  .plusmit-dashboard__status {
+    grid-template-columns: 1fr;
+  }
+}

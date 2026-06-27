@@ -16,11 +16,11 @@ import { ctaFields, seoFields, slugField, statusField } from '@/lib/fields'
 const publicRead = readPublishedOrAuthenticated
 
 const adminGroups = {
-  site: 'Site',
+  site: 'Website',
   content: 'Content',
   services: 'Services',
-  industries: 'Industries',
-  reviews: 'Reviews',
+  industries: 'Services',
+  reviews: 'Trust',
   leads: 'Leads',
   seo: 'SEO',
   media: 'Media',
@@ -104,7 +104,7 @@ export const Pages: CollectionConfig = {
   slug: 'pages',
   admin: {
     useAsTitle: 'title',
-    group: adminGroups.content,
+    group: adminGroups.site,
     defaultColumns: ['title', 'slug', 'status', 'updatedAt'],
     livePreview: {
       url: ({ data }) => `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/${data.slug || ''}`,
