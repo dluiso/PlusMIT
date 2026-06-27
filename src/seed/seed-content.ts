@@ -5,6 +5,7 @@ type SeedOptions = {
   publish?: boolean
   companyName?: string
   primaryDomain?: string
+  updateExisting?: boolean
 }
 
 const status = (publish?: boolean) => (publish ? 'published' : 'draft')
@@ -43,34 +44,101 @@ const pageBlocks = {
   homepage: [
     {
       blockType: 'hero',
+      sectionId: 'top',
       eyebrow: 'Modern IT operations',
-      title: 'Reliable support, secure infrastructure, cloud services, automation, and recovery.',
+      title: 'Reliable support, secure infrastructure, built for daily operations.',
+      highlightText: 'built for daily operations.',
       summary:
-        'PlusMIT helps organizations modernize, secure, and automate their IT operations through help desk support, network administration, cloud services, ECM automation, web implementation, hosting, and recovery services.',
+        'PlusMIT helps organizations modernize, secure, and automate IT operations through help desk, network, cloud, ECM automation, hosting, and recovery.',
+      theme: 'white',
+      layoutVariant: 'dashboard',
+      mediaPosition: 'right',
+      spacing: 'spacious',
       primaryCta: { label: 'Request Assessment', url: '/request-assessment' },
-      secondaryCta: { label: 'Explore Services', url: '/services' },
+      secondaryCta: { label: 'Explore Services', url: '#services' },
+      stats: [
+        { value: '24/7', label: 'Help desk support' },
+        { value: '99.9%', label: 'Uptime focus' },
+        { value: '5+', label: 'Cloud platforms' },
+      ],
+      badges: [
+        { label: 'Systems', value: 'All operational' },
+        { label: 'Backups', value: 'Verified' },
+      ],
+    },
+    {
+      blockType: 'stats',
+      theme: 'soft',
+      layoutVariant: 'compact',
+      title: 'Trusted across',
+      items: [
+        { value: 'Government', label: 'Public sector' },
+        { value: 'Education', label: 'Schools and programs' },
+        { value: 'Healthcare', label: 'Operational reliability' },
+        { value: 'Nonprofit', label: 'Mission-focused teams' },
+        { value: 'Private Sector', label: 'Business operations' },
+      ],
     },
     {
       blockType: 'servicesGrid',
+      sectionId: 'services',
       eyebrow: 'Capabilities',
       title: 'A practical technology partner for daily operations and complex recovery.',
       summary: 'Every service page is editable from the CMS and can be expanded as PlusMIT offerings evolve.',
-      items: services.slice(0, 8).map(([title, slug, summary]) => ({ title, summary, url: `/services/${slug}`, icon: '✦' })),
+      theme: 'white',
+      itemLimit: 8,
+      viewAllCta: { label: 'All services', url: '/services' },
+      items: services.slice(0, 8).map(([title, slug, summary]) => ({ title, summary, url: `/services/${slug}`, icon: '+' })),
     },
     {
       blockType: 'industryCards',
+      sectionId: 'industries',
       eyebrow: 'Industries',
       title: 'Built for organizations where dependability matters.',
       summary: 'PlusMIT can assist government, education, healthcare, nonprofit, and business environments with careful planning and support.',
-      items: industries.slice(0, 6).map(([title, slug, summary]) => ({ title, summary, url: `/industries/${slug}`, icon: '▣' })),
+      theme: 'soft',
+      itemLimit: 6,
+      items: industries.slice(0, 6).map(([title, slug, summary]) => ({ title, summary, url: `/industries/${slug}`, icon: '+' })),
     },
     {
       blockType: 'smartfiche',
+      sectionId: 'solutions',
       eyebrow: 'ECM and Laserfiche',
       title: 'PlusMIT and SmartFiche work together for focused Laserfiche services.',
       summary:
         'PlusMIT provides ECM and automation services, while SmartFiche is positioned as the specialized Laserfiche-focused presence for forms, workflows, repository support, and process modernization.',
+      theme: 'splitDarkBlue',
+      mediaPosition: 'right',
+      primaryCta: { label: 'Learn about SmartFiche', url: '/solutions/smartfiche-laserfiche-services' },
       smartFicheUrl: '/solutions/smartfiche-laserfiche-services',
+    },
+    {
+      blockType: 'testimonials',
+      eyebrow: 'Client voices',
+      title: 'What organizations say about working with PlusMIT.',
+      theme: 'white',
+      textAlign: 'center',
+      itemLimit: 3,
+      items: [
+        {
+          quote: 'PlusMIT became an extension of our team. Response times improved and our systems have been consistently dependable ever since.',
+          name: 'Diana Reyes',
+          role: 'IT Director',
+          organization: 'County Services',
+        },
+        {
+          quote: 'Their Laserfiche automation removed hours of manual paperwork each week. The rollout was careful and well documented.',
+          name: 'Marcus Allen',
+          role: 'Operations Lead',
+          organization: 'Regional Clinic',
+        },
+        {
+          quote: 'After a security incident, PlusMIT handled cleanup and hardening calmly and got us back online faster than expected.',
+          name: 'Sofia Kim',
+          role: 'Founder',
+          organization: 'Mid-size Retailer',
+        },
+      ],
     },
     {
       blockType: 'recoveryEmergencyCta',
@@ -78,15 +146,17 @@ const pageBlocks = {
       title: 'Compromised website or database?',
       summary:
         'PlusMIT can assist with malware cleanup, database recovery planning, hosting review, and practical hardening after a compromise.',
+      theme: 'white',
+      layoutVariant: 'centered',
       primaryCta: { label: 'Request Recovery Help', url: '/contact' },
     },
   ],
 }
 
 const defaultFormFields = [
-  { name: 'name', label: 'Name', type: 'text', required: true },
-  { name: 'email', label: 'Email', type: 'email', required: true },
-  { name: 'phone', label: 'Phone', type: 'tel', required: false },
+  { name: 'firstName', label: 'First name', type: 'text', required: true },
+  { name: 'lastName', label: 'Last name', type: 'text', required: false },
+  { name: 'email', label: 'Work email', type: 'email', required: true },
   { name: 'organization', label: 'Organization', type: 'text', required: false },
   {
     name: 'requestedService',
@@ -95,7 +165,7 @@ const defaultFormFields = [
     required: false,
     options: services.slice(0, 8).map(([label]) => ({ label })),
   },
-  { name: 'message', label: 'Message', type: 'textarea', required: true },
+  { name: 'message', label: 'How can we help?', type: 'textarea', required: true },
 ]
 
 async function upsert<T extends Record<string, unknown>>(
@@ -103,6 +173,7 @@ async function upsert<T extends Record<string, unknown>>(
   collection: string,
   where: Record<string, unknown>,
   data: T,
+  updateExisting = false,
 ) {
   const existing = await payload.find({
     collection: collection as never,
@@ -110,22 +181,40 @@ async function upsert<T extends Record<string, unknown>>(
     limit: 1,
     overrideAccess: true,
   })
-  if (existing.docs[0]) return existing.docs[0]
+
+  if (existing.docs[0]) {
+    if (!updateExisting) return existing.docs[0]
+
+    return payload.update({
+      collection: collection as never,
+      id: (existing.docs[0] as { id: string | number }).id,
+      data: data as never,
+      overrideAccess: true,
+    })
+  }
+
   return payload.create({ collection: collection as never, data: data as never, overrideAccess: true })
 }
 
-export async function seedContent({ payload, publish = true, companyName = 'PlusMIT', primaryDomain = 'http://localhost:3000' }: SeedOptions) {
+export async function seedContent({
+  payload,
+  publish = true,
+  companyName = 'PlusMIT',
+  primaryDomain = 'http://localhost:3000',
+  updateExisting = false,
+}: SeedOptions) {
   await payload.updateGlobal({
     slug: 'site-settings',
     data: {
       companyName,
       primaryDomain,
       tagline: 'Modern IT support, automation, cloud, web, and recovery services.',
-      publicEmail: 'info@example.com',
+      publicEmail: 'hello@plusmit.com',
       defaultCtaLabel: 'Request Assessment',
       defaultCtaUrl: '/request-assessment',
       footerText:
-        'PlusMIT helps organizations modernize, secure, and automate IT operations through practical support, cloud, ECM, web, hosting, and recovery services.',
+        'Helping organizations modernize, secure, and automate IT operations through practical support, cloud, ECM, web, hosting, and recovery services.',
+      copyrightText: `(c) ${new Date().getFullYear()} PlusMIT - Enterprise IT Solutions.`,
       legalLinks: [
         { label: 'Privacy Policy', url: '/privacy-policy' },
         { label: 'Terms of Service', url: '/terms-of-service' },
@@ -138,12 +227,12 @@ export async function seedContent({ payload, publish = true, companyName = 'Plus
   await payload.updateGlobal({
     slug: 'branding',
     data: {
-      primaryColor: '#38bdf8',
-      secondaryColor: '#1d4ed8',
-      accentColor: '#22c55e',
-      backgroundColor: '#07111f',
-      textColor: '#f8fafc',
-      cardBackgroundColor: '#0f1b2d',
+      primaryColor: '#2563eb',
+      secondaryColor: '#0f172a',
+      accentColor: '#38bdf8',
+      backgroundColor: '#f4f7fb',
+      textColor: '#0f172a',
+      cardBackgroundColor: '#ffffff',
     },
     overrideAccess: true,
   })
@@ -157,94 +246,222 @@ export async function seedContent({ payload, publish = true, companyName = 'Plus
     ['Cloud Consultation Request', 'cloud-consultation', 'Thank you. Your cloud consultation request was received.'],
   ]
 
+  const seededForms = new Map<string, unknown>()
+
   for (const [name, slug, confirmationMessage] of forms) {
-    await upsert(payload, 'forms', { slug: { equals: slug } }, { name, slug, confirmationMessage, active: true, fields: defaultFormFields })
+    const form = await upsert(
+      payload,
+      'forms',
+      { slug: { equals: slug } },
+      { name, slug, confirmationMessage, active: true, fields: defaultFormFields },
+      updateExisting,
+    )
+    seededForms.set(slug, form)
   }
 
-  await upsert(payload, 'navigation', { slug: { equals: 'main' } }, {
-    name: 'Main Navigation',
-    slug: 'main',
-    location: 'main',
-    items: [
-      { label: 'Services', url: '/services', visible: true, order: 1 },
-      { label: 'Industries', url: '/industries', visible: true, order: 2 },
-      { label: 'Solutions', url: '/solutions', visible: true, order: 3 },
-      { label: 'Resources', url: '/resources', visible: true, order: 4 },
-      { label: 'Contact', url: '/contact', visible: true, order: 5 },
-    ],
-  })
+  await upsert(
+    payload,
+    'navigation',
+    { slug: { equals: 'main' } },
+    {
+      name: 'Main Navigation',
+      slug: 'main',
+      location: 'main',
+      items: [
+        { label: 'Services', url: '/#services', visible: true, order: 1 },
+        { label: 'Industries', url: '/#industries', visible: true, order: 2 },
+        { label: 'Solutions', url: '/#solutions', visible: true, order: 3 },
+        { label: 'Resources', url: '/resources', visible: true, order: 4 },
+        { label: 'Contact', url: '/contact', visible: true, order: 5 },
+      ],
+    },
+    updateExisting,
+  )
 
-  await upsert(payload, 'navigation', { slug: { equals: 'mobile' } }, {
-    name: 'Mobile Navigation',
-    slug: 'mobile',
-    location: 'mobile',
-    items: [
-      { label: 'Home', url: '/', visible: true, order: 1 },
-      { label: 'Services', url: '/services', visible: true, order: 2 },
-      { label: 'Industries', url: '/industries', visible: true, order: 3 },
-      { label: 'Contact', url: '/contact', visible: true, order: 4 },
-    ],
-  })
+  await upsert(
+    payload,
+    'navigation',
+    { slug: { equals: 'mobile' } },
+    {
+      name: 'Mobile Navigation',
+      slug: 'mobile',
+      location: 'mobile',
+      items: [
+        { label: 'Home', url: '/', visible: true, order: 1 },
+        { label: 'Services', url: '/#services', visible: true, order: 2 },
+        { label: 'Industries', url: '/#industries', visible: true, order: 3 },
+        { label: 'Contact', url: '/contact', visible: true, order: 4 },
+      ],
+    },
+    updateExisting,
+  )
 
   for (const [name, slug, shortSummary] of services) {
-    await upsert(payload, 'services', { slug: { equals: slug } }, {
-      name,
-      slug,
-      status: status(publish),
-      shortSummary,
-      longDescription: `${companyName} helps organizations plan, implement, support, and improve ${name.toLowerCase()} with practical attention to reliability, security, documentation, and maintainability.`,
-      heroTitle: name,
-      heroSubtitle: shortSummary,
-      benefits: list(['Clearer operations', 'Improved reliability', 'Security-aware planning', 'Better documentation']),
-      painPointsSolved: list(['Unclear ownership', 'Reactive support', 'Manual workflows', 'Recovery gaps']),
-      deliverables: list(['Assessment and recommendations', 'Implementation support', 'Documentation', 'Ongoing improvement plan']),
-      technologiesUsed: list(['Microsoft 365', 'Azure', 'AWS', 'Oracle Cloud', 'PostgreSQL', 'Laserfiche']),
-      processSteps: [
-        { title: 'Assess', text: 'Review the current environment and goals.' },
-        { title: 'Plan', text: 'Define a practical roadmap with risks and dependencies.' },
-        { title: 'Implement', text: 'Execute with documentation and measured rollout steps.' },
-        { title: 'Support', text: 'Monitor outcomes and refine operations.' },
-      ],
-      cta: { label: 'Request Assessment', url: '/request-assessment' },
-      seo: { title: `${name} | ${companyName}`, description: shortSummary, sitemapInclude: true, sitemapPriority: 0.8, schemaType: 'Service' },
-    })
+    await upsert(
+      payload,
+      'services',
+      { slug: { equals: slug } },
+      {
+        name,
+        slug,
+        status: status(publish),
+        shortSummary,
+        longDescription: `${companyName} helps organizations plan, implement, support, and improve ${name.toLowerCase()} with practical attention to reliability, security, documentation, and maintainability.`,
+        heroTitle: name,
+        heroSubtitle: shortSummary,
+        benefits: list(['Clearer operations', 'Improved reliability', 'Security-aware planning', 'Better documentation']),
+        painPointsSolved: list(['Unclear ownership', 'Reactive support', 'Manual workflows', 'Recovery gaps']),
+        deliverables: list(['Assessment and recommendations', 'Implementation support', 'Documentation', 'Ongoing improvement plan']),
+        technologiesUsed: list(['Microsoft 365', 'Azure', 'AWS', 'Oracle Cloud', 'PostgreSQL', 'Laserfiche']),
+        processSteps: [
+          { title: 'Assess', text: 'Review the current environment and goals.' },
+          { title: 'Plan', text: 'Define a practical roadmap with risks and dependencies.' },
+          { title: 'Implement', text: 'Execute with documentation and measured rollout steps.' },
+          { title: 'Support', text: 'Monitor outcomes and refine operations.' },
+        ],
+        cta: { label: 'Request Assessment', url: '/request-assessment' },
+        seo: { title: `${name} | ${companyName}`, description: shortSummary, sitemapInclude: true, sitemapPriority: 0.8, schemaType: 'Service' },
+      },
+      updateExisting,
+    )
   }
 
   for (const [name, slug, overview] of industries) {
-    await upsert(payload, 'industries', { slug: { equals: slug } }, {
-      name,
-      slug,
-      status: status(publish),
-      overview,
-      challenges: list(['Reliable user support', 'Secure access', 'Workflow visibility', 'Continuity planning']),
-      complianceConsiderations:
-        'PlusMIT can help align technical operations with the organization policies, retention needs, access controls, and recovery expectations that apply to this environment.',
-      cta: { label: 'Discuss Your Environment', url: '/request-assessment' },
-      seo: { title: `${name} IT Services | ${companyName}`, description: overview, sitemapInclude: true, sitemapPriority: 0.7 },
-    })
+    await upsert(
+      payload,
+      'industries',
+      { slug: { equals: slug } },
+      {
+        name,
+        slug,
+        status: status(publish),
+        overview,
+        challenges: list(['Reliable user support', 'Secure access', 'Workflow visibility', 'Continuity planning']),
+        complianceConsiderations:
+          'PlusMIT can help align technical operations with the organization policies, retention needs, access controls, and recovery expectations that apply to this environment.',
+        cta: { label: 'Discuss Your Environment', url: '/request-assessment' },
+        seo: { title: `${name} IT Services | ${companyName}`, description: overview, sitemapInclude: true, sitemapPriority: 0.7 },
+      },
+      updateExisting,
+    )
   }
+
+  const contactForm = seededForms.get('contact')
+  const assessmentForm = seededForms.get('request-assessment')
 
   const pages = [
     ['Home', 'home', 'home', pageBlocks.homepage],
-    ['Solutions', 'solutions', 'standard', [{ blockType: 'featureCards', title: 'Solutions', summary: 'Editable solution pages for specialized service positioning.', items: [{ title: 'SmartFiche Laserfiche Services', summary: 'Laserfiche-focused ECM and automation services.', url: '/solutions/smartfiche-laserfiche-services' }] }]],
-    ['SmartFiche Laserfiche Services', 'solutions/smartfiche-laserfiche-services', 'solution', [{ blockType: 'smartfiche', title: 'SmartFiche and PlusMIT Laserfiche services', summary: 'PlusMIT provides ECM and automation services, while SmartFiche is the specialized Laserfiche-focused presence for workflow automation, forms modernization, repository support, cloud migration planning, ECM process design, and consulting.', smartFicheUrl: 'https://smartfiche.example.com' }]],
-    ['About', 'about', 'standard', [{ blockType: 'richText', title: 'About PlusMIT', body: 'PlusMIT is focused on dependable IT operations, automation, web implementation, hosting, and recovery services for organizations that need practical technical support.' }]],
-    ['Contact', 'contact', 'standard', [{ blockType: 'contactForm', title: 'Contact PlusMIT', summary: 'Tell us what you need help with and we will review the request.', form: undefined }]],
-    ['Request Assessment', 'request-assessment', 'standard', [{ blockType: 'contactForm', title: 'Request an IT assessment', summary: 'Share the environment, goals, urgency, and current challenges.', form: undefined }]],
-    ['Privacy Policy', 'privacy-policy', 'legal', [{ blockType: 'richText', title: 'Privacy Policy Draft', body: 'This draft policy should be reviewed by qualified counsel before publication.' }]],
-    ['Terms of Service', 'terms-of-service', 'legal', [{ blockType: 'richText', title: 'Terms of Service Draft', body: 'This draft terms page should be reviewed by qualified counsel before publication.' }]],
-    ['Cookie Policy', 'cookie-policy', 'legal', [{ blockType: 'richText', title: 'Cookie Policy Draft', body: 'This draft cookie policy should be reviewed and updated based on enabled analytics and tracking tools.' }]],
+    [
+      'Solutions',
+      'solutions',
+      'standard',
+      [
+        {
+          blockType: 'featureCards',
+          eyebrow: 'Solutions',
+          title: 'Specialized IT and automation solutions.',
+          summary: 'Editable solution pages for focused service positioning.',
+          theme: 'white',
+          items: [
+            {
+              title: 'SmartFiche Laserfiche Services',
+              summary: 'Laserfiche-focused ECM and automation services.',
+              url: '/solutions/smartfiche-laserfiche-services',
+              icon: '+',
+            },
+          ],
+        },
+      ],
+    ],
+    [
+      'SmartFiche Laserfiche Services',
+      'solutions/smartfiche-laserfiche-services',
+      'solution',
+      [
+        {
+          blockType: 'smartfiche',
+          eyebrow: 'ECM and Laserfiche',
+          title: 'SmartFiche and PlusMIT Laserfiche services',
+          summary:
+            'PlusMIT provides ECM and automation services, while SmartFiche is the specialized Laserfiche-focused presence for workflow automation, forms modernization, repository support, cloud migration planning, ECM process design, and consulting.',
+          theme: 'splitDarkBlue',
+          primaryCta: { label: 'Request ECM Consultation', url: '/request-assessment' },
+          smartFicheUrl: 'https://smartfiche.example.com',
+        },
+      ],
+    ],
+    [
+      'About',
+      'about',
+      'standard',
+      [
+        {
+          blockType: 'richText',
+          eyebrow: 'About',
+          title: 'About PlusMIT',
+          body:
+            'PlusMIT is focused on dependable IT operations, automation, web implementation, hosting, and recovery services for organizations that need practical technical support.',
+          theme: 'white',
+        },
+      ],
+    ],
+    [
+      'Contact',
+      'contact',
+      'standard',
+      [
+        {
+          blockType: 'contactForm',
+          eyebrow: 'Contact',
+          title: "Let's talk about your IT operations.",
+          summary: "Tell us a bit about your environment and goals. We'll follow up with practical next steps and a proposed assessment.",
+          theme: 'dark',
+          layoutVariant: 'contact',
+          form: contactForm,
+          contactItems: [
+            { label: 'Email', value: 'hello@plusmit.com', icon: 'mail' },
+            { label: 'Recovery line', value: 'Priority response for compromises', icon: 'shield' },
+            { label: 'Support', value: '24/7 help desk for managed clients', icon: 'clock' },
+          ],
+        },
+      ],
+    ],
+    [
+      'Request Assessment',
+      'request-assessment',
+      'standard',
+      [
+        {
+          blockType: 'contactForm',
+          eyebrow: 'Assessment',
+          title: 'Request an IT assessment',
+          summary: 'Share the environment, goals, urgency, and current challenges.',
+          theme: 'dark',
+          layoutVariant: 'contact',
+          form: assessmentForm,
+        },
+      ],
+    ],
+    ['Privacy Policy', 'privacy-policy', 'legal', [{ blockType: 'richText', title: 'Privacy Policy Draft', body: 'This draft policy should be reviewed by qualified counsel before publication.', theme: 'white' }]],
+    ['Terms of Service', 'terms-of-service', 'legal', [{ blockType: 'richText', title: 'Terms of Service Draft', body: 'This draft terms page should be reviewed by qualified counsel before publication.', theme: 'white' }]],
+    ['Cookie Policy', 'cookie-policy', 'legal', [{ blockType: 'richText', title: 'Cookie Policy Draft', body: 'This draft cookie policy should be reviewed and updated based on enabled analytics and tracking tools.', theme: 'white' }]],
   ]
 
   for (const [title, slug, pageType, layout] of pages) {
-    await upsert(payload, 'pages', { slug: { equals: slug } }, {
-      title,
-      slug,
-      pageType,
-      status: status(publish),
-      layout,
-      seo: { title: `${title} | ${companyName}`, description: `${title} information from ${companyName}.`, sitemapInclude: true },
-    })
+    await upsert(
+      payload,
+      'pages',
+      { slug: { equals: slug } },
+      {
+        title,
+        slug,
+        pageType,
+        status: status(publish),
+        layout,
+        seo: { title: `${title} | ${companyName}`, description: `${title} information from ${companyName}.`, sitemapInclude: true },
+      },
+      updateExisting,
+    )
   }
 
   for (const [question, answer] of [
@@ -252,7 +469,7 @@ export async function seedContent({ payload, publish = true, companyName = 'Plus
     ['Does PlusMIT support Laserfiche automation?', 'Yes. PlusMIT can assist with ECM workflow, forms, repository, and automation planning, with SmartFiche positioned as the specialized Laserfiche presence.'],
     ['Can services be customized by industry?', 'Yes. Service and industry pages are CMS-managed so messaging and recommended services can be refined over time.'],
   ]) {
-    await upsert(payload, 'faqs', { question: { equals: question } }, { question, answer, status: status(publish), includeInSchema: true })
+    await upsert(payload, 'faqs', { question: { equals: question } }, { question, answer, status: status(publish), includeInSchema: true }, updateExisting)
   }
 
   for (const title of [
@@ -263,30 +480,48 @@ export async function seedContent({ payload, publish = true, companyName = 'Plus
     'Cloud Migration Planning for Small and Mid-Size Organizations',
   ]) {
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    await upsert(payload, 'posts', { slug: { equals: slug } }, {
-      title,
-      slug,
-      status: 'draft',
-      excerpt: 'Draft starter resource for the CMS editor to expand before publishing.',
-      content: 'This draft starter article should be reviewed, expanded, and customized before publication.',
-      seo: { title, description: 'Draft resource prepared for CMS editing.', sitemapInclude: false, noindex: true },
-    })
+    await upsert(
+      payload,
+      'posts',
+      { slug: { equals: slug } },
+      {
+        title,
+        slug,
+        status: 'draft',
+        excerpt: 'Draft starter resource for the CMS editor to expand before publishing.',
+        content: 'This draft starter article should be reviewed, expanded, and customized before publication.',
+        seo: { title, description: 'Draft resource prepared for CMS editing.', sitemapInclude: false, noindex: true },
+      },
+      updateExisting,
+    )
   }
 
-  await upsert(payload, 'case-studies', { slug: { equals: 'draft-example-automation-project' } }, {
-    title: 'Draft Example Automation Project',
-    slug: 'draft-example-automation-project',
-    status: 'draft',
-    challenge: 'Draft placeholder challenge. Replace with a real client-approved case study before publishing.',
-    solution: 'Draft placeholder solution. Replace with actual approved project details.',
-    results: 'Draft placeholder results. Do not publish unsupported metrics.',
-  })
+  await upsert(
+    payload,
+    'case-studies',
+    { slug: { equals: 'draft-example-automation-project' } },
+    {
+      title: 'Draft Example Automation Project',
+      slug: 'draft-example-automation-project',
+      status: 'draft',
+      challenge: 'Draft placeholder challenge. Replace with a real client-approved case study before publishing.',
+      solution: 'Draft placeholder solution. Replace with actual approved project details.',
+      results: 'Draft placeholder results. Do not publish unsupported metrics.',
+    },
+    updateExisting,
+  )
 
-  await upsert(payload, 'testimonials', { clientName: { equals: 'Draft Placeholder Reviewer' } }, {
-    clientName: 'Draft Placeholder Reviewer',
-    quote: 'Draft placeholder only. Replace with a real permission-confirmed review before publishing.',
-    permissionConfirmed: false,
-    status: 'draft',
-    internalNotes: 'Seeded placeholder. Not public and not eligible for Review schema.',
-  })
+  await upsert(
+    payload,
+    'testimonials',
+    { clientName: { equals: 'Draft Placeholder Reviewer' } },
+    {
+      clientName: 'Draft Placeholder Reviewer',
+      quote: 'Draft placeholder only. Replace with a real permission-confirmed review before publishing.',
+      permissionConfirmed: false,
+      status: 'draft',
+      internalNotes: 'Seeded placeholder. Not public and not eligible for Review schema.',
+    },
+    updateExisting,
+  )
 }

@@ -106,6 +106,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
           companyName={settings.site.companyName}
           footerText={settings.site.footerText}
           tagline={settings.site.tagline}
+          copyrightText={settings.site.copyrightText}
           legalLinks={settings.site.legalLinks}
           socialLinks={settings.site.socialLinks}
           publicEmail={settings.site.publicEmail}

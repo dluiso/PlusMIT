@@ -48,6 +48,8 @@ Use these production values when prompted:
 
 The installer creates `.env`, builds the app image, starts PostgreSQL, runs migrations, seeds starter content, and starts the web app.
 
+The seed command is non-destructive by default. It creates missing starter records but does not overwrite existing CMS pages, forms, services, or navigation. To intentionally apply the latest starter template to existing records after taking a backup, run the seed with `SEED_UPDATE_EXISTING=true`.
+
 By default the app binds Docker port `3000` to `127.0.0.1` only:
 
 ```env
@@ -127,6 +129,13 @@ For updates:
 ```bash
 git pull
 ./scripts/update.sh
+```
+
+If a release includes new starter page layout fields and you want to apply the updated template to existing CMS content, back up first and then run:
+
+```bash
+./scripts/backup-db.sh
+docker compose --profile tools run --rm -e SEED_UPDATE_EXISTING=true cli npm run seed
 ```
 
 After an update, run:

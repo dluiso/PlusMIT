@@ -15,16 +15,19 @@ export default async function ServicesIndex() {
   })
 
   return (
-    <section className="container py-16">
-      <p className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Services</p>
-      <h1 className="text-5xl font-black">IT services built for resilient operations</h1>
-      <div className="grid-auto mt-10">
+    <section className="section-block section-block--white">
+      <div className="container py-16">
+      <p className="section-eyebrow">Services</p>
+      <h1 className="section-title max-w-4xl">IT services built for resilient operations</h1>
+      <div className="modern-card-grid mt-10">
         {services.docs.map((service) => (
-          <a className="surface p-5" href={`/services/${service.slug}`} key={service.id}>
+          <a className="modern-card" href={`/services/${service.slug}`} key={service.id}>
+            <span className="card-icon">+</span>
             <h2 className="text-xl font-bold">{service.name}</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{service.shortSummary}</p>
           </a>
         ))}
+      </div>
       </div>
     </section>
   )

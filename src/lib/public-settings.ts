@@ -7,12 +7,16 @@ const cssVarNamePattern = /^--[a-z0-9-]+$/i
 const cssVarValuePattern = /^#[0-9a-f]{3,8}$|^[0-9.]+(rem|em|px|%)$|^[a-z0-9 -]+$/i
 const gaPattern = /^G-[A-Z0-9]+$/i
 const gtmPattern = /^GTM-[A-Z0-9]+$/i
+const fontPattern = /^[a-z0-9 ,'"-]+$/i
 
 const safeColor = (value: unknown, fallback: string) =>
   typeof value === 'string' && colorPattern.test(value) ? value : fallback
 
 const safePattern = (value: unknown, pattern: RegExp) =>
   typeof value === 'string' && pattern.test(value) ? value : ''
+
+const safeFont = (value: unknown, fallback: string) =>
+  typeof value === 'string' && fontPattern.test(value) ? value : fallback
 
 const darkDefaults = {
   background: '#07111f',
@@ -66,7 +70,7 @@ export async function getPublicSettings() {
       defaultCtaLabel: site?.defaultCtaLabel || 'Request Assessment',
       defaultCtaUrl: site?.defaultCtaUrl || '/request-assessment',
       footerText: site?.footerText || '',
-      copyrightText: site?.copyrightText || `© ${new Date().getFullYear()} PlusMIT. All rights reserved.`,
+      copyrightText: site?.copyrightText || `(c) ${new Date().getFullYear()} PlusMIT. All rights reserved.`,
       legalLinks: site?.legalLinks || [],
       defaultSeoImage: getMediaInfo(site?.defaultSeoImage, 'og'),
       defaultOpenGraphImage: getMediaInfo(site?.defaultOpenGraphImage || site?.defaultSeoImage, 'og'),
@@ -102,6 +106,8 @@ export async function getPublicSettings() {
       gradientStyle: branding?.gradientStyle || 'infrastructure',
       darkModeEnabled: Boolean(branding?.darkModeEnabled ?? true),
       defaultThemeMode,
+      headingFont: safeFont(branding?.headingFont, 'Inter'),
+      bodyFont: safeFont(branding?.bodyFont, 'Inter'),
       customVariables,
     },
   }
@@ -128,6 +134,8 @@ export function themeStyle(settings: Awaited<ReturnType<typeof getPublicSettings
     '--color-subtle': `color-mix(in srgb, ${settings.branding.textColor} 12%, transparent)`,
     '--color-border': `color-mix(in srgb, ${settings.branding.textColor} 18%, transparent)`,
     '--color-header': `color-mix(in srgb, ${settings.branding.cardBackgroundColor} 88%, transparent)`,
+    '--font-heading': `${settings.branding.headingFont}, ui-sans-serif, system-ui, sans-serif`,
+    '--font-body': `${settings.branding.bodyFont}, ui-sans-serif, system-ui, sans-serif`,
     '--radius-ui': radius,
     colorScheme: settings.branding.defaultThemeMode === 'light' ? 'light' : 'dark',
   }

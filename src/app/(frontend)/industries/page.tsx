@@ -10,16 +10,19 @@ export default async function IndustriesIndex() {
   const industries = await payload.find({ collection: 'industries', where: { status: { equals: 'published' } }, sort: 'name', limit: 50 })
 
   return (
-    <section className="container py-16">
-      <p className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--color-primary)]">Industries</p>
-      <h1 className="text-5xl font-black">Support for public, regulated, and growing organizations</h1>
-      <div className="grid-auto mt-10">
+    <section className="section-block section-block--soft">
+      <div className="container py-16">
+      <p className="section-eyebrow">Industries</p>
+      <h1 className="section-title max-w-4xl">Support for public, regulated, and growing organizations</h1>
+      <div className="modern-card-grid mt-10">
         {industries.docs.map((industry) => (
-          <a className="surface p-5" href={`/industries/${industry.slug}`} key={industry.id}>
+          <a className="modern-card" href={`/industries/${industry.slug}`} key={industry.id}>
+            <span className="card-icon">+</span>
             <h2 className="text-xl font-bold">{industry.name}</h2>
             <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">{industry.overview}</p>
           </a>
         ))}
+      </div>
       </div>
     </section>
   )

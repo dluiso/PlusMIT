@@ -11,12 +11,11 @@ type FormField = {
 }
 
 const defaultFields: FormField[] = [
-  { name: 'name', label: 'Name', type: 'text', required: true },
-  { name: 'email', label: 'Email', type: 'email', required: true },
-  { name: 'phone', label: 'Phone', type: 'tel' },
+  { name: 'name', label: 'First name', type: 'text', required: true },
+  { name: 'email', label: 'Work email', type: 'email', required: true },
   { name: 'organization', label: 'Organization', type: 'text' },
   { name: 'requestedService', label: 'Requested Service', type: 'text' },
-  { name: 'message', label: 'Message', type: 'textarea', required: true },
+  { name: 'message', label: 'How can we help?', type: 'textarea', required: true },
 ]
 
 const requiredSubmissionFields = new Set(['name', 'email', 'message'])
@@ -44,7 +43,13 @@ function FieldControl({ field }: { field: FormField }) {
     return (
       <label className="field">
         <span>{label}</span>
-        <textarea name={name} required={required} minLength={name === 'message' ? 10 : undefined} rows={5} />
+        <textarea
+          name={name}
+          placeholder={name === 'message' ? "Tell us about your environment, goals, or an issue you're facing..." : undefined}
+          required={required}
+          minLength={name === 'message' ? 10 : undefined}
+          rows={5}
+        />
       </label>
     )
   }
@@ -75,7 +80,13 @@ function FieldControl({ field }: { field: FormField }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input name={name} type={field.type || 'text'} required={required} minLength={name === 'name' ? 2 : undefined} />
+      <input
+        name={name}
+        placeholder={name === 'email' ? 'jane@organization.com' : name === 'organization' ? 'Organization name' : undefined}
+        type={field.type || 'text'}
+        required={required}
+        minLength={name === 'name' ? 2 : undefined}
+      />
     </label>
   )
 }
@@ -112,7 +123,7 @@ export function ContactForm({ fields, formSlug = 'contact' }: { fields?: FormFie
   }
 
   return (
-    <form className="surface grid gap-4 p-5" onSubmit={submit}>
+    <form className="surface grid gap-5 p-5" onSubmit={submit}>
       <input name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
       {renderedFields.map((field) => (
         <FieldControl field={field} key={field.name} />
@@ -122,7 +133,7 @@ export function ContactForm({ fields, formSlug = 'contact' }: { fields?: FormFie
         <span>I consent to this information being used to respond to my request.</span>
       </label>
       <button className="button" disabled={state === 'submitting'}>
-        {state === 'submitting' ? 'Sending...' : 'Submit Request'}
+        {state === 'submitting' ? 'Sending...' : 'Send message →'}
       </button>
       {message ? (
         <p className={state === 'error' ? 'text-sm text-red-300' : 'text-sm text-emerald-300'}>{message}</p>

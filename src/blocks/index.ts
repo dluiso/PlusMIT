@@ -20,9 +20,58 @@ const listField = (name: string, label: string) => ({
 })
 
 const sectionBase = [
+  {
+    name: 'sectionId',
+    label: 'Section anchor ID',
+    type: 'text' as const,
+    admin: { description: 'Optional anchor without #, for example services, industries, solutions, or contact.' },
+  },
   { name: 'eyebrow', type: 'text' as const },
   { name: 'title', type: 'text' as const, required: true },
+  {
+    name: 'highlightText',
+    type: 'text' as const,
+    admin: { description: 'Optional exact title text to emphasize with the brand color.' },
+  },
   { name: 'summary', type: 'textarea' as const },
+  {
+    name: 'theme',
+    type: 'select' as const,
+    defaultValue: 'default',
+    options: ['default', 'white', 'soft', 'dark', 'blue', 'splitDarkBlue'],
+  },
+  {
+    name: 'layoutVariant',
+    type: 'select' as const,
+    defaultValue: 'default',
+    options: ['default', 'compact', 'centered', 'split', 'dashboard', 'contact'],
+  },
+  {
+    name: 'textAlign',
+    type: 'select' as const,
+    defaultValue: 'left',
+    options: ['left', 'center', 'right'],
+  },
+  {
+    name: 'mediaPosition',
+    type: 'select' as const,
+    defaultValue: 'right',
+    options: ['left', 'right', 'top', 'bottom', 'background', 'none'],
+  },
+  {
+    name: 'spacing',
+    type: 'select' as const,
+    defaultValue: 'standard',
+    options: ['compact', 'standard', 'spacious'],
+  },
+  {
+    name: 'maxWidth',
+    type: 'select' as const,
+    defaultValue: 'standard',
+    options: ['narrow', 'standard', 'wide'],
+  },
+  { name: 'backgroundImage', type: 'upload' as const, relationTo: 'media' as const },
+  { name: 'overlayOpacity', type: 'number' as const, min: 0, max: 90, defaultValue: 0 },
 ]
 
 export const blocks: Block[] = [
@@ -33,28 +82,58 @@ export const blocks: Block[] = [
       ...sectionBase,
       { name: 'primaryCta', type: 'group', fields: linkFields },
       { name: 'secondaryCta', type: 'group', fields: linkFields },
-      { name: 'backgroundImage', type: 'upload', relationTo: 'media' },
+      {
+        name: 'stats',
+        type: 'array',
+        fields: [
+          { name: 'value', type: 'text', required: true },
+          { name: 'label', type: 'text', required: true },
+        ],
+      },
+      {
+        name: 'badges',
+        type: 'array',
+        fields: [
+          { name: 'label', type: 'text', required: true },
+          { name: 'value', type: 'text' },
+        ],
+      },
     ],
   },
   {
     slug: 'splitHero',
     labels: { singular: 'Split Hero Block', plural: 'Split Hero Blocks' },
-    fields: [...sectionBase, { name: 'image', type: 'upload', relationTo: 'media' }],
+    fields: [
+      ...sectionBase,
+      { name: 'image', type: 'upload', relationTo: 'media' as const },
+      { name: 'primaryCta', type: 'group', fields: linkFields },
+      { name: 'secondaryCta', type: 'group', fields: linkFields },
+    ],
   },
   {
     slug: 'servicesGrid',
     labels: { singular: 'Services Grid', plural: 'Services Grids' },
-    fields: [...sectionBase, { name: 'items', type: 'array', fields: cardFields }],
+    fields: [
+      ...sectionBase,
+      { name: 'items', type: 'array', fields: cardFields },
+      { name: 'itemLimit', type: 'number', defaultValue: 8, min: 1, max: 24 },
+      { name: 'viewAllCta', type: 'group', fields: linkFields },
+    ],
   },
   {
     slug: 'featuredService',
     labels: { singular: 'Featured Service', plural: 'Featured Services' },
-    fields: [...sectionBase, { name: 'service', type: 'relationship', relationTo: 'services' }],
+    fields: [...sectionBase, { name: 'service', type: 'relationship', relationTo: 'services' as const }],
   },
   {
     slug: 'industryCards',
     labels: { singular: 'Industry Cards', plural: 'Industry Cards' },
-    fields: [...sectionBase, { name: 'items', type: 'array', fields: cardFields }],
+    fields: [
+      ...sectionBase,
+      { name: 'items', type: 'array', fields: cardFields },
+      { name: 'itemLimit', type: 'number', defaultValue: 6, min: 1, max: 24 },
+      { name: 'viewAllCta', type: 'group', fields: linkFields },
+    ],
   },
   {
     slug: 'processTimeline',
@@ -89,12 +168,16 @@ export const blocks: Block[] = [
   {
     slug: 'testimonials',
     labels: { singular: 'Testimonial Carousel', plural: 'Testimonial Carousels' },
-    fields: [...sectionBase],
+    fields: [
+      ...sectionBase,
+      { name: 'items', type: 'array', fields: cardFields },
+      { name: 'itemLimit', type: 'number', defaultValue: 3, min: 1, max: 12 },
+    ],
   },
   {
     slug: 'caseStudyHighlight',
     labels: { singular: 'Case Study Highlight', plural: 'Case Study Highlights' },
-    fields: [...sectionBase, { name: 'caseStudy', type: 'relationship', relationTo: 'case-studies' }],
+    fields: [...sectionBase, { name: 'caseStudy', type: 'relationship', relationTo: 'case-studies' as const }],
   },
   {
     slug: 'faqAccordion',
@@ -109,7 +192,19 @@ export const blocks: Block[] = [
   {
     slug: 'contactForm',
     labels: { singular: 'Contact Form Block', plural: 'Contact Form Blocks' },
-    fields: [...sectionBase, { name: 'form', type: 'relationship', relationTo: 'forms' }],
+    fields: [
+      ...sectionBase,
+      { name: 'form', type: 'relationship', relationTo: 'forms' as const },
+      {
+        name: 'contactItems',
+        type: 'array',
+        fields: [
+          { name: 'label', type: 'text', required: true },
+          { name: 'value', type: 'text', required: true },
+          { name: 'icon', type: 'text' },
+        ],
+      },
+    ],
   },
   {
     slug: 'richText',
@@ -119,7 +214,12 @@ export const blocks: Block[] = [
   {
     slug: 'imageText',
     labels: { singular: 'Image + Text Block', plural: 'Image + Text Blocks' },
-    fields: [...sectionBase, { name: 'image', type: 'upload', relationTo: 'media' }],
+    fields: [
+      ...sectionBase,
+      { name: 'image', type: 'upload', relationTo: 'media' as const },
+      { name: 'primaryCta', type: 'group', fields: linkFields },
+      { name: 'secondaryCta', type: 'group', fields: linkFields },
+    ],
   },
   {
     slug: 'technologyStack',

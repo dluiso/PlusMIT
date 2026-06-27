@@ -11,6 +11,7 @@ try {
     publish: process.env.SEED_PUBLISH !== 'false',
     companyName: process.env.SEED_COMPANY_NAME || 'PlusMIT',
     primaryDomain: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+    updateExisting: process.env.SEED_UPDATE_EXISTING === 'true',
   })
 
   await payload.destroy()

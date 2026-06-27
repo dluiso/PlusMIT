@@ -24,7 +24,7 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-header)] backdrop-blur-xl">
-      <div className="container flex min-h-16 items-center justify-between gap-4">
+      <div className="container flex min-h-[74px] items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-3 font-bold">
           {logo?.url ? (
             <Image
@@ -36,21 +36,21 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
               width={logo.width || 160}
             />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-bg)]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-ui)] bg-[var(--color-primary)] text-white shadow-lg shadow-blue-500/20">
               +
             </span>
           )}
-          {showCompanyName ? <span>{companyName}</span> : null}
+          {showCompanyName ? <span className="text-lg font-black">{companyName}</span> : null}
         </Link>
-        <nav className="hidden items-center gap-5 text-sm text-[var(--color-muted)] md:flex" aria-label="Main navigation">
+        <nav className="hidden items-center gap-8 text-sm font-semibold text-[var(--color-muted)] md:flex" aria-label="Main navigation">
           {visibleItems.map((item) => (
-            <a key={`${item.label}-${item.url}`} href={item.url || '#'}>
+            <a className="transition hover:text-[var(--color-primary)]" key={`${item.label}-${item.url}`} href={item.url || '#'}>
               {item.label}
             </a>
           ))}
         </nav>
         <a className="button hidden md:inline-flex" href={ctaUrl}>
-          {ctaLabel}
+          {ctaLabel} <span aria-hidden="true">→</span>
         </a>
       </div>
     </header>
