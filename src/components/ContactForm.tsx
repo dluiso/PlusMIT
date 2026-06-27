@@ -133,7 +133,7 @@ export function ContactForm({ fields, formSlug = 'contact' }: { fields?: FormFie
         <span>I consent to this information being used to respond to my request.</span>
       </label>
       <button className="button" disabled={state === 'submitting'}>
-        {state === 'submitting' ? 'Sending...' : 'Send message →'}
+        {state === 'submitting' ? 'Sending...' : 'Send message ->'}
       </button>
       {message ? (
         <p className={state === 'error' ? 'text-sm text-red-300' : 'text-sm text-emerald-300'}>{message}</p>

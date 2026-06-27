@@ -19,6 +19,90 @@ const listField = (name: string, label: string) => ({
   fields: [{ name: 'text', type: 'text' as const, required: true }],
 })
 
+const designControls = [
+  {
+    name: 'titleSize',
+    label: 'Title size',
+    type: 'select' as const,
+    defaultValue: 'auto',
+    options: ['auto', 'small', 'medium', 'large', 'display'],
+    admin: { description: 'Use display only for short hero headlines. Large is usually best for home sections.' },
+  },
+  {
+    name: 'summarySize',
+    label: 'Summary size',
+    type: 'select' as const,
+    defaultValue: 'medium',
+    options: ['small', 'medium', 'large'],
+  },
+  {
+    name: 'eyebrowColor',
+    label: 'Eyebrow color',
+    type: 'select' as const,
+    defaultValue: 'primary',
+    options: ['default', 'primary', 'secondary', 'muted', 'light', 'dark', 'custom'],
+  },
+  {
+    name: 'titleColor',
+    label: 'Title color',
+    type: 'select' as const,
+    defaultValue: 'default',
+    options: ['default', 'primary', 'secondary', 'muted', 'light', 'dark', 'custom'],
+  },
+  {
+    name: 'summaryColor',
+    label: 'Summary color',
+    type: 'select' as const,
+    defaultValue: 'default',
+    options: ['default', 'primary', 'secondary', 'muted', 'light', 'dark', 'custom'],
+  },
+  {
+    name: 'customEyebrowColor',
+    label: 'Custom eyebrow color',
+    type: 'text' as const,
+    admin: { description: 'Optional hex color, for example #2563eb. Used only when Eyebrow color is Custom.' },
+  },
+  {
+    name: 'customTitleColor',
+    label: 'Custom title color',
+    type: 'text' as const,
+    admin: { description: 'Optional hex color, for example #0f172a. Used only when Title color is Custom.' },
+  },
+  {
+    name: 'customSummaryColor',
+    label: 'Custom summary color',
+    type: 'text' as const,
+    admin: { description: 'Optional hex color, for example #475569. Used only when Summary color is Custom.' },
+  },
+  {
+    name: 'customBackgroundColor',
+    label: 'Custom background color',
+    type: 'text' as const,
+    admin: { description: 'Optional hex color for this section background, for example #f8fafc.' },
+  },
+  {
+    name: 'cardDensity',
+    label: 'Card density',
+    type: 'select' as const,
+    defaultValue: 'comfortable',
+    options: ['compact', 'comfortable', 'spacious'],
+  },
+  {
+    name: 'cardColumns',
+    label: 'Card columns',
+    type: 'select' as const,
+    defaultValue: 'auto',
+    options: ['auto', 'two', 'three', 'four'],
+  },
+  {
+    name: 'mediaSize',
+    label: 'Media size',
+    type: 'select' as const,
+    defaultValue: 'medium',
+    options: ['small', 'medium', 'large'],
+  },
+]
+
 const sectionBase = [
   {
     name: 'sectionId',
@@ -69,6 +153,13 @@ const sectionBase = [
     type: 'select' as const,
     defaultValue: 'standard',
     options: ['narrow', 'standard', 'wide'],
+  },
+  {
+    name: 'design',
+    label: 'Design controls',
+    type: 'group' as const,
+    admin: { description: 'Optional visual controls for this block. Leave defaults for consistent styling.' },
+    fields: designControls,
   },
   { name: 'backgroundImage', type: 'upload' as const, relationTo: 'media' as const },
   { name: 'overlayOpacity', type: 'number' as const, min: 0, max: 90, defaultValue: 0 },

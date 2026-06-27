@@ -25,12 +25,30 @@ type ContactItem = {
   value?: string
 }
 
+type ColorChoice = 'default' | 'primary' | 'secondary' | 'muted' | 'light' | 'dark' | 'custom'
+
+type DesignControls = {
+  cardColumns?: 'auto' | 'two' | 'three' | 'four'
+  cardDensity?: 'compact' | 'comfortable' | 'spacious'
+  customBackgroundColor?: string
+  customEyebrowColor?: string
+  customSummaryColor?: string
+  customTitleColor?: string
+  eyebrowColor?: ColorChoice
+  mediaSize?: 'small' | 'medium' | 'large'
+  summaryColor?: ColorChoice
+  summarySize?: 'small' | 'medium' | 'large'
+  titleColor?: ColorChoice
+  titleSize?: 'auto' | 'small' | 'medium' | 'large' | 'display'
+}
+
 type AnyBlock = {
   backgroundImage?: MediaValue
   badges?: { label?: string; value?: string }[]
   blockType?: string
   body?: string
   contactItems?: ContactItem[]
+  design?: DesignControls
   eyebrow?: string
   form?: { slug?: string; fields?: FormField[]; confirmationMessage?: string } | number
   highlightText?: string
@@ -56,7 +74,9 @@ type AnyBlock = {
   theme?: 'default' | 'white' | 'soft' | 'dark' | 'blue' | 'splitDarkBlue'
   title?: string
   viewAllCta?: { label?: string; url?: string }
-}
+} & DesignControls
+
+const colorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
@@ -79,12 +99,35 @@ function titleWithHighlight(title?: string, highlight?: string) {
   )
 }
 
+function safeColor(value?: string) {
+  return typeof value === 'string' && colorPattern.test(value) ? value : undefined
+}
+
+function blockDesign(block: AnyBlock): DesignControls {
+  return block.design || block
+}
+
+function colorClass(value?: ColorChoice) {
+  if (!value || value === 'default' || value === 'custom') return undefined
+  return `design-color--${value}`
+}
+
+function colorStyle(choice: unknown, custom?: string) {
+  const color = choice === 'custom' ? safeColor(custom) : undefined
+  return color ? { color } : undefined
+}
+
 function sectionClass(block: AnyBlock) {
   return cx(
     'section-block',
     `section-block--${block.theme || 'default'}`,
     `section-block--${block.spacing || 'standard'}`,
   )
+}
+
+function sectionStyle(block: AnyBlock) {
+  const backgroundColor = safeColor(blockDesign(block).customBackgroundColor)
+  return backgroundColor ? { backgroundColor } : undefined
 }
 
 function innerClass(block: AnyBlock) {
@@ -100,16 +143,40 @@ function innerClass(block: AnyBlock) {
 function SectionHeader({ block, heading = 'h2' }: { block: AnyBlock; heading?: 'h1' | 'h2' }) {
   const Heading = heading
   const centered = block.textAlign === 'center'
+  const design = blockDesign(block)
+  const titleSize = design.titleSize === 'auto' || !design.titleSize ? 'medium' : design.titleSize
+  const summarySize = design.summarySize || 'medium'
 
   return (
     <div className={cx('section-heading', centered && 'mx-auto')}>
-      {block.eyebrow ? <p className="section-eyebrow">{block.eyebrow}</p> : null}
+      {block.eyebrow ? (
+        <p
+          className={cx('section-eyebrow', colorClass(design.eyebrowColor))}
+          style={colorStyle(design.eyebrowColor, design.customEyebrowColor)}
+        >
+          {block.eyebrow}
+        </p>
+      ) : null}
       {block.title ? (
-        <Heading className={heading === 'h1' ? 'hero-title' : 'section-title'}>
+        <Heading
+          className={cx(
+            heading === 'h1' ? 'hero-title' : 'section-title',
+            `${heading === 'h1' ? 'hero-title' : 'section-title'}--${titleSize}`,
+            colorClass(design.titleColor),
+          )}
+          style={colorStyle(design.titleColor, design.customTitleColor)}
+        >
           {titleWithHighlight(block.title, block.highlightText)}
         </Heading>
       ) : null}
-      {block.summary ? <p className="section-summary">{block.summary}</p> : null}
+      {block.summary ? (
+        <p
+          className={cx('section-summary', `section-summary--${summarySize}`, colorClass(design.summaryColor))}
+          style={colorStyle(design.summaryColor, design.customSummaryColor)}
+        >
+          {block.summary}
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -119,7 +186,7 @@ function CtaRow({ block }: { block: AnyBlock }) {
     <div className={cx('cta-row', block.textAlign === 'center' && 'justify-center', block.textAlign === 'right' && 'justify-end')}>
       {block.primaryCta?.url ? (
         <a className="button" href={block.primaryCta.url}>
-          {block.primaryCta.label || 'Learn more'} <span aria-hidden="true">→</span>
+          {block.primaryCta.label || 'Learn more'} <span aria-hidden="true">-&gt;</span>
         </a>
       ) : null}
       {block.secondaryCta?.url ? (
@@ -131,11 +198,18 @@ function CtaRow({ block }: { block: AnyBlock }) {
   )
 }
 
-function CardGrid({ items, featuredIndex }: { items?: CardItem[]; featuredIndex?: number }) {
+function CardGrid({ block, items, featuredIndex }: { block: AnyBlock; items?: CardItem[]; featuredIndex?: number }) {
   if (!items?.length) return null
+  const design = blockDesign(block)
 
   return (
-    <div className="modern-card-grid">
+    <div
+      className={cx(
+        'modern-card-grid',
+        `modern-card-grid--${design.cardColumns || 'auto'}`,
+        `modern-card-grid--${design.cardDensity || 'comfortable'}`,
+      )}
+    >
       {items.map((item, index) => {
         const content = (
           <>
@@ -168,11 +242,19 @@ function CardGrid({ items, featuredIndex }: { items?: CardItem[]; featuredIndex?
   )
 }
 
-function MediaPanel({ image, priority = false }: { image?: MediaValue; priority?: boolean }) {
+function MediaPanel({
+  image,
+  mediaSize = 'medium',
+  priority = false,
+}: {
+  image?: MediaValue
+  mediaSize?: AnyBlock['mediaSize']
+  priority?: boolean
+}) {
   const media = getMediaInfo(image, priority ? 'hero' : 'card')
 
   return (
-    <div className="media-panel">
+    <div className={cx('media-panel', `media-panel--${mediaSize || 'medium'}`)}>
       {media?.url ? (
         <Image
           alt={media.alt}
@@ -209,7 +291,7 @@ function DashboardHeroVisual({ block }: { block: AnyBlock }) {
           </div>
         ))}
       </div>
-      <MediaPanel image={block.backgroundImage} priority />
+      <MediaPanel image={block.backgroundImage} mediaSize={blockDesign(block).mediaSize} priority />
     </div>
   )
 }
@@ -291,7 +373,7 @@ async function getCollectionCards(blockType?: string, limit = 8): Promise<CardIt
     return result.docs.map((testimonial) => ({
       title: testimonial.clientName,
       summary: testimonial.quote,
-      icon: '★★★★★',
+      icon: '*****',
     }))
   }
 
@@ -359,7 +441,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'hero') {
             return (
-              <section className={cx(sectionClass(block), 'hero-section')} id={block.sectionId || undefined} key={key}>
+              <section className={cx(sectionClass(block), 'hero-section')} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'hero-grid')}>
                   <div>
@@ -376,7 +458,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           if (block.blockType === 'splitHero' || block.blockType === 'imageText' || block.blockType === 'smartfiche') {
             const reverse = block.mediaPosition === 'left'
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'split-section', reverse && 'split-section--reverse')}>
                   <div>
@@ -384,11 +466,13 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
                     <CtaRow block={block} />
                     {block.smartFicheUrl ? (
                       <a className="button mt-6" href={block.smartFicheUrl}>
-                        Learn about SmartFiche <span aria-hidden="true">→</span>
+                        Learn about SmartFiche <span aria-hidden="true">-&gt;</span>
                       </a>
                     ) : null}
                   </div>
-                  {block.mediaPosition !== 'none' ? <MediaPanel image={block.image || block.backgroundImage} /> : null}
+                  {block.mediaPosition !== 'none' ? (
+                    <MediaPanel image={block.image || block.backgroundImage} mediaSize={blockDesign(block).mediaSize} />
+                  ) : null}
                 </div>
               </section>
             )
@@ -397,7 +481,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           if (block.blockType === 'contactForm') {
             const form = typeof block.form === 'object' ? block.form : null
             return (
-              <section className={cx(sectionClass(block), 'contact-section')} id={block.sectionId || undefined} key={key}>
+              <section className={cx(sectionClass(block), 'contact-section')} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'contact-grid')}>
                   <div className="contact-panel">
@@ -412,7 +496,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'stats') {
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <div className={innerClass(block)}>
                   <SectionHeader block={block} />
                   <StatsRow stats={block.stats} />
@@ -423,7 +507,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'richText' || block.blockType === 'securityNotice') {
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <SectionBackground block={block} />
                 <div className={innerClass(block)}>
                   <div className="surface prose-panel">
@@ -437,7 +521,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'technologyStack') {
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <div className={innerClass(block)}>
                   <SectionHeader block={block} />
                   <div className="tag-cloud">
@@ -454,7 +538,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'ctaBanner' || block.blockType === 'recoveryEmergencyCta') {
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'cta-panel')}>
                   <SectionHeader block={block} />
@@ -466,7 +550,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'processTimeline') {
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
                 <div className={innerClass(block)}>
                   <SectionHeader block={block} />
                   <Timeline steps={block.steps} />
@@ -477,18 +561,18 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           const items = await resolveItems(block)
           return (
-            <section className={sectionClass(block)} id={block.sectionId || undefined} key={key}>
+            <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
               <SectionBackground block={block} />
               <div className={innerClass(block)}>
                 <div className="section-heading-row">
                   <SectionHeader block={block} />
                   {block.viewAllCta?.url ? (
                     <a className="section-view-all" href={block.viewAllCta.url}>
-                      {block.viewAllCta.label || 'View all'} <span aria-hidden="true">→</span>
+                      {block.viewAllCta.label || 'View all'} <span aria-hidden="true">-&gt;</span>
                     </a>
                   ) : null}
                 </div>
-                <CardGrid items={items} featuredIndex={block.blockType === 'testimonials' ? 1 : undefined} />
+                <CardGrid block={block} items={items} featuredIndex={block.blockType === 'testimonials' ? 1 : undefined} />
               </div>
             </section>
           )

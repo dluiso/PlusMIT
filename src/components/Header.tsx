@@ -50,7 +50,7 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
           ))}
         </nav>
         <a className="button hidden md:inline-flex" href={ctaUrl}>
-          {ctaLabel} <span aria-hidden="true">→</span>
+          {ctaLabel} <span aria-hidden="true">-&gt;</span>
         </a>
       </div>
     </header>
