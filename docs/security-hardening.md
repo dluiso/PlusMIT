@@ -4,7 +4,8 @@ This document tracks security controls that are split between the application an
 
 ## Implemented in the app
 
-- Global security headers include CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options`, `Strict-Transport-Security`, and `Cross-Origin-Opener-Policy`.
+- Global security headers include CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`, and `Cross-Origin-Resource-Policy`.
+- A security contact file is published at `/.well-known/security.txt`.
 - Production Payload auth cookies default to `Secure` and `SameSite=Lax`.
 - Public media uploads are restricted to configured MIME types and served from `MEDIA_DIR`, outside the Next.js public directory.
 - Admin routes are redirected to login before Payload renders protected admin pages when no auth cookie is present.
@@ -59,3 +60,7 @@ To remove it:
 ### CSP
 
 The app currently uses `script-src 'unsafe-inline'` because Next.js and Payload emit inline runtime scripts. Removing it safely requires a nonce-based CSP implementation across the Next/Payload admin shell. Treat that as a separate hardening phase, tested carefully against the admin login, dashboard, media upload, and frontend pages.
+
+### Cross-Origin-Embedder-Policy
+
+`Cross-Origin-Embedder-Policy` is intentionally not enabled globally yet. A strict COEP policy can break embedded third-party resources such as Cloudflare Turnstile and parts of the Payload admin experience. Test it in report-only mode or on a staging host before enforcing it.
