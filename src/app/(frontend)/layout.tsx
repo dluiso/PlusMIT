@@ -38,8 +38,8 @@ export default async function FrontendLayout({ children }: { children: React.Rea
 
   if (settings.site.maintenanceMode) {
     return (
-      <html lang="en" style={themeStyle(settings)}>
-        <body>
+      <html lang="en" style={themeStyle(settings)} suppressHydrationWarning>
+        <body suppressHydrationWarning>
           <main className="container grid min-h-screen place-items-center py-20">
             <div className="surface max-w-xl p-8 text-center">
               <h1 className="text-3xl font-bold">Maintenance in progress</h1>
@@ -52,8 +52,8 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   }
 
   return (
-    <html lang="en" style={themeStyle(settings)}>
-      <body>
+    <html lang="en" style={themeStyle(settings)} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <Analytics
           enabled={settings.site.analytics.enabled}
           gaMeasurementId={settings.site.analytics.gaMeasurementId}
