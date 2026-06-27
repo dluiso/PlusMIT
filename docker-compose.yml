@@ -5,6 +5,8 @@ services:
       target: runner
     restart: unless-stopped
     env_file: .env
+    environment:
+      MEDIA_DIR: /app/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,6 +28,8 @@ services:
     profiles:
       - tools
     env_file: .env
+    environment:
+      MEDIA_DIR: /app/media
     depends_on:
       postgres:
         condition: service_healthy

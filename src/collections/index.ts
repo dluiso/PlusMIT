@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import path from 'path'
 import { blocks } from '@/blocks'
 import {
   auditAfterChange,
@@ -14,6 +15,7 @@ import {
 import { ctaFields, seoFields, slugField, statusField } from '@/lib/fields'
 
 const publicRead = readPublishedOrAuthenticated
+const mediaStaticDir = process.env.MEDIA_DIR || path.resolve(process.cwd(), 'media')
 
 const adminGroups = {
   site: 'Website',
@@ -79,7 +81,7 @@ export const Media: CollectionConfig = {
     delete: canManageSystem,
   },
   upload: {
-    staticDir: '../../media',
+    staticDir: mediaStaticDir,
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'],
     imageSizes: [
       { name: 'card', width: 720, height: 480, crop: 'center' },
