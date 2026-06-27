@@ -6,6 +6,13 @@ site_url="${site_url%/}"
 
 echo "Checking Docker services..."
 docker compose ps
+app_status="$(docker compose ps --format json app | grep -o '"Health":"[^"]*"' | head -n 1 | cut -d '"' -f 4 || true)"
+if [ "${app_status}" = "unhealthy" ]; then
+  echo "App container is unhealthy. Recent health/log output:"
+  docker inspect --format='{{json .State.Health}}' "$(docker compose ps -q app)" || true
+  docker compose logs app --tail=80 || true
+  exit 1
+fi
 
 echo
 echo "Checking local app health..."
