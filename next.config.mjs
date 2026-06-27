@@ -1,12 +1,29 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com",
+  [
+    'script-src',
+    "'self'",
+    "'unsafe-inline'",
+    ...(isDev ? ["'unsafe-eval'"] : []),
+    'https://www.googletagmanager.com',
+    'https://www.google-analytics.com',
+    'https://challenges.cloudflare.com',
+  ].join(' '),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com",
+  [
+    'connect-src',
+    "'self'",
+    ...(isDev ? ['ws:', 'http://localhost:*'] : []),
+    'https://www.google-analytics.com',
+    'https://region1.google-analytics.com',
+    'https://challenges.cloudflare.com',
+  ].join(' '),
   "frame-src https://challenges.cloudflare.com",
   "frame-ancestors 'self'",
   "object-src 'none'",

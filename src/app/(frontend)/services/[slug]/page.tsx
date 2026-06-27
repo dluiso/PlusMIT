@@ -4,7 +4,7 @@ import { getPayloadClient } from '@/lib/payload'
 import { buildMetadata } from '@/lib/seo'
 
 type Args = { params: Promise<{ slug: string }> }
-type ListItem = { id?: string; text?: string }
+type ListItem = { id?: string | null; text?: string }
 
 async function getService(slug: string) {
   const payload = await getPayloadClient()

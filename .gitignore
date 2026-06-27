@@ -8,6 +8,7 @@ backups/
 dist/
 coverage/
 payload-types.ts
+src/types/payload-types.ts
 tsconfig.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*

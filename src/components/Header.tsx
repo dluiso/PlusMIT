@@ -3,8 +3,8 @@ import Link from 'next/link'
 type NavItem = {
   label?: string
   url?: string
-  visible?: boolean
-  children?: NavItem[]
+  visible?: boolean | null
+  children?: NavItem[] | null
 }
 
 type Props = {

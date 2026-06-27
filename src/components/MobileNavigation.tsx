@@ -1,4 +1,4 @@
-type MobileItem = { label?: string; url?: string; visible?: boolean }
+type MobileItem = { label?: string; url?: string; visible?: boolean | null }
 
 const fallbackItems: MobileItem[] = [
   { label: 'Home', url: '/' },
