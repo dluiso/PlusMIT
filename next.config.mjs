@@ -1,6 +1,7 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 
 const isDev = process.env.NODE_ENV !== 'production'
+const hsts = 'max-age=31536000; includeSubDomains'
 
 const csp = [
   "default-src 'self'",
@@ -29,6 +30,7 @@ const csp = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  ...(isDev ? [] : ['upgrade-insecure-requests']),
 ].join('; ')
 
 /** @type {import('next').NextConfig} */
@@ -59,6 +61,8 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Strict-Transport-Security', value: hsts },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
         ],
       },
     ]

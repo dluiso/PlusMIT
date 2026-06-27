@@ -16,6 +16,9 @@ import { ctaFields, seoFields, slugField, statusField } from '@/lib/fields'
 
 const publicRead = readPublishedOrAuthenticated
 const mediaStaticDir = process.env.MEDIA_DIR || path.resolve(process.cwd(), 'media')
+const secureAuthCookies =
+  process.env.PAYLOAD_COOKIE_SECURE === 'true' ||
+  (process.env.PAYLOAD_COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production')
 
 const adminGroups = {
   site: 'Website',
@@ -40,6 +43,10 @@ export const Users: CollectionConfig = {
     maxLoginAttempts: 5,
     lockTime: 15 * 60 * 1000,
     tokenExpiration: 60 * 60 * 8,
+    cookies: {
+      sameSite: 'Lax',
+      secure: secureAuthCookies,
+    },
   },
   access: {
     read: isAuthenticated,
