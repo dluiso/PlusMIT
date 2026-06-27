@@ -34,6 +34,10 @@ const csp = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   compress: true,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 31536000,
+  },
   output: 'standalone',
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
@@ -41,6 +45,12 @@ const nextConfig = {
   typedRoutes: false,
   async headers() {
     return [
+      {
+        source: '/api/media/file/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
       {
         source: '/:path*',
         headers: [

@@ -31,7 +31,7 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
               alt={logo.alt || companyName}
               className="h-10 w-auto max-w-40 object-contain"
               height={logo.height || 40}
-              priority
+              sizes="(max-width: 768px) 140px, 160px"
               src={logo.url}
               width={logo.width || 160}
             />

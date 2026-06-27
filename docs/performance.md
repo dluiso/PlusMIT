@@ -8,9 +8,10 @@ Implemented application controls:
 - Browser source maps disabled in production builds.
 - `X-Powered-By` disabled.
 - Response compression enabled in Next.js.
-- Uploaded media responses include public cache headers.
+- Uploaded media responses use long-lived public cache headers.
+- Next Image is configured for AVIF/WebP output and long image optimizer cache TTL.
 - Public settings are cached briefly with stale revalidation.
-- Analytics scripts only load when enabled and when IDs match expected GA4/GTM formats.
+- Analytics and consent client JavaScript only render when analytics is enabled and IDs match expected GA4/GTM formats.
 
 Cloudflare recommendations:
 

@@ -84,7 +84,7 @@ export const Media: CollectionConfig = {
     staticDir: mediaStaticDir,
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf'],
     modifyResponseHeaders: ({ headers }) => {
-      headers.set('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400')
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
       return headers
     },
     imageSizes: [

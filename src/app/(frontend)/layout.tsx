@@ -41,6 +41,10 @@ export default async function FrontendLayout({ children }: { children: React.Rea
     getNavigation('main'),
     getNavigation('mobile'),
   ])
+  const analyticsEnabled = Boolean(
+    settings.site.analytics.enabled &&
+      (settings.site.analytics.gaMeasurementId || settings.site.analytics.gtmId),
+  )
 
   if (settings.site.maintenanceMode) {
     return (
@@ -70,11 +74,13 @@ export default async function FrontendLayout({ children }: { children: React.Rea
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>
-        <Analytics
-          enabled={settings.site.analytics.enabled}
-          gaMeasurementId={settings.site.analytics.gaMeasurementId}
-          gtmId={settings.site.analytics.gtmId}
-        />
+        {analyticsEnabled ? (
+          <Analytics
+            enabled={analyticsEnabled}
+            gaMeasurementId={settings.site.analytics.gaMeasurementId}
+            gtmId={settings.site.analytics.gtmId}
+          />
+        ) : null}
         {settings.site.announcementEnabled && settings.site.announcementText ? (
           <a
             className="block border-b border-cyan-300/20 bg-[var(--color-primary)] px-4 py-2 text-center text-sm font-semibold text-[var(--color-bg)]"
@@ -110,7 +116,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
           ctaUrl={settings.site.defaultCtaUrl}
           items={mobileNav}
         />
-        <ConsentBanner companyName={settings.site.companyName} enabled={settings.site.analytics.enabled} />
+        {analyticsEnabled ? <ConsentBanner companyName={settings.site.companyName} enabled={analyticsEnabled} /> : null}
       </body>
     </html>
   )
