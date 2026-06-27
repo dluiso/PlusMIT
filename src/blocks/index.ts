@@ -103,6 +103,7 @@ const designControls = [
   },
   {
     name: 'mediaFit',
+    dbName: 'm_fit',
     label: 'Media fit',
     type: 'select' as const,
     defaultValue: 'cover',
@@ -111,6 +112,7 @@ const designControls = [
   },
   {
     name: 'mediaAspectRatio',
+    dbName: 'm_ratio',
     label: 'Media aspect ratio',
     type: 'select' as const,
     defaultValue: 'auto',
@@ -118,6 +120,7 @@ const designControls = [
   },
   {
     name: 'mediaObjectPosition',
+    dbName: 'm_pos',
     label: 'Media focal position',
     type: 'select' as const,
     defaultValue: 'center',
@@ -125,6 +128,7 @@ const designControls = [
   },
   {
     name: 'mediaFrame',
+    dbName: 'm_frame',
     label: 'Media frame',
     type: 'select' as const,
     defaultValue: 'card',
@@ -132,6 +136,7 @@ const designControls = [
   },
   {
     name: 'mediaPadding',
+    dbName: 'm_pad',
     label: 'Media padding',
     type: 'select' as const,
     defaultValue: 'none',
@@ -145,6 +150,7 @@ const designControls = [
   },
   {
     name: 'mobileLayout',
+    dbName: 'mob_layout',
     label: 'Mobile layout',
     type: 'select' as const,
     defaultValue: 'stack',
@@ -152,6 +158,7 @@ const designControls = [
   },
   {
     name: 'mobileMedia',
+    dbName: 'mob_media',
     label: 'Mobile media',
     type: 'select' as const,
     defaultValue: 'show',
@@ -159,6 +166,7 @@ const designControls = [
   },
   {
     name: 'mobileSpacing',
+    dbName: 'mob_space',
     label: 'Mobile spacing',
     type: 'select' as const,
     defaultValue: 'standard',
@@ -166,6 +174,7 @@ const designControls = [
   },
   {
     name: 'mobileCtaLayout',
+    dbName: 'mob_cta',
     label: 'Mobile CTA layout',
     type: 'select' as const,
     defaultValue: 'stack',
