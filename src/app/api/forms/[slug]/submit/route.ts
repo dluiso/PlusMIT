@@ -1,7 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hashValue, leadSubmissionSchema } from '@/lib/forms'
 import { getPayloadClient } from '@/lib/payload'
-import { rateLimit } from '@/lib/rate-limit'
+import { rateLimit, readPositiveInt } from '@/lib/rate-limit'
+
+const formRateLimit = readPositiveInt(process.env.FORM_RATE_LIMIT, 8, 1, 100)
+const formRateWindowMs = readPositiveInt(process.env.FORM_RATE_WINDOW_MS, 10 * 60 * 1000, 1000)
+const formBodyLimitBytes = readPositiveInt(process.env.FORM_BODY_LIMIT_BYTES, 64 * 1024, 1024, 1024 * 1024)
+
+function getClientIp(request: NextRequest) {
+  return (
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-real-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown'
+  )
+}
+
+async function readJsonBody(request: NextRequest) {
+  const contentLength = Number.parseInt(request.headers.get('content-length') || '0', 10)
+  if (Number.isFinite(contentLength) && contentLength > formBodyLimitBytes) {
+    return { tooLarge: true, json: null }
+  }
+
+  const rawBody = await request.text().catch(() => null)
+  if (!rawBody) return { tooLarge: false, json: null }
+  if (Buffer.byteLength(rawBody, 'utf8') > formBodyLimitBytes) {
+    return { tooLarge: true, json: null }
+  }
+
+  try {
+    return { tooLarge: false, json: JSON.parse(rawBody) as unknown }
+  } catch {
+    return { tooLarge: false, json: null }
+  }
+}
 
 async function verifyTurnstile(token: string | undefined) {
   if (!process.env.TURNSTILE_SECRET_KEY) return true
@@ -22,13 +54,22 @@ async function verifyTurnstile(token: string | undefined) {
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const ip = getClientIp(request)
 
-  if (!rateLimit(`${slug}:${ip}`)) {
-    return NextResponse.json({ message: 'Too many submissions. Please try again later.' }, { status: 429 })
+  const limit = rateLimit(`form:${slug}:${ip}`, formRateLimit, formRateWindowMs)
+  if (!limit.allowed) {
+    const retryAfter = Math.max(Math.ceil((limit.resetAt - Date.now()) / 1000), 1).toString()
+    return NextResponse.json(
+      { message: 'Too many submissions. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': retryAfter } },
+    )
   }
 
-  const json = await request.json().catch(() => null)
+  const { json, tooLarge } = await readJsonBody(request)
+  if (tooLarge) {
+    return NextResponse.json({ message: 'The submission is too large.' }, { status: 413 })
+  }
+
   const parsed = leadSubmissionSchema.safeParse(json)
 
   if (!parsed.success || parsed.data.website) {

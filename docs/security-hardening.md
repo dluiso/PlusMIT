@@ -9,6 +9,8 @@ This document tracks security controls that are split between the application an
 - Production Payload auth cookies default to `Secure` and `SameSite=Lax`.
 - Public media uploads are restricted to configured MIME types and served from `MEDIA_DIR`, outside the Next.js public directory.
 - Admin routes are redirected to login before Payload renders protected admin pages when no auth cookie is present.
+- Docker publishes the app on `127.0.0.1:${APP_PORT:-3000}` by default so a local reverse proxy or Cloudflare Tunnel can front it without exposing port `3000` publicly.
+- Public lead forms use configurable application rate limits, Cloudflare-aware client IP detection, honeypot validation, optional Turnstile, and request body size limits.
 
 ## Cloudflare and DNS actions
 
@@ -56,6 +58,18 @@ To remove it:
 2. Scrape Shield.
 3. Disable Email Address Obfuscation.
 4. Purge cache and rescan.
+
+### Cloudflare Access and WAF
+
+Protect private routes at Cloudflare before traffic reaches the app:
+
+- Access policy: `/admin*`
+- Access policy: `/setup*`
+- WAF or rate limiting: `/admin/login`
+- WAF or rate limiting: `/api/forms/*/submit`
+- Do not block required public routes such as `/api/public-settings` and `/api/media/file/*`.
+
+If Cloudflare Tunnel is in use, keep `APP_BIND_ADDRESS=127.0.0.1`. If direct origin access is still possible, restrict inbound firewall traffic to Cloudflare IP ranges or put a local reverse proxy in front of Docker.
 
 ### CSP
 

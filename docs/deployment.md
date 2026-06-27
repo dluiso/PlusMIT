@@ -48,6 +48,15 @@ Use these production values when prompted:
 
 The installer creates `.env`, builds the app image, starts PostgreSQL, runs migrations, seeds starter content, and starts the web app.
 
+By default the app binds Docker port `3000` to `127.0.0.1` only:
+
+```env
+APP_BIND_ADDRESS=127.0.0.1
+APP_PORT=3000
+```
+
+Keep that default when Cloudflare Tunnel, Nginx, Caddy, or another local reverse proxy fronts the app. Only use `APP_BIND_ADDRESS=0.0.0.0` for temporary direct testing, and restrict it with a firewall.
+
 ## 4. Cloudflare Tunnel Example
 
 Install `cloudflared` using Cloudflare's Debian instructions, then run:
@@ -119,6 +128,22 @@ For updates:
 git pull
 ./scripts/update.sh
 ```
+
+After an update, run:
+
+```bash
+./scripts/post-deploy-check.sh https://plusmit.com
+```
+
+If an update fails after `git pull`, return to the previous known good commit:
+
+```bash
+git log --oneline -5
+git checkout <previous-good-commit>
+./scripts/update.sh
+```
+
+Then investigate the failed commit before moving forward again.
 
 ## 8. Backups
 

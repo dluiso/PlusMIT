@@ -27,6 +27,10 @@ fi
 
 read -r -p "Production domain, including https:// [https://plusmit.com]: " site_url
 site_url=${site_url:-https://plusmit.com}
+read -r -p "App bind address [127.0.0.1]: " app_bind
+app_bind=${app_bind:-127.0.0.1}
+read -r -p "App host port [3000]: " app_port
+app_port=${app_port:-3000}
 read -r -p "Database name [plusmit]: " db_name
 db_name=${db_name:-plusmit}
 read -r -p "Database user [plusmit]: " db_user
@@ -46,17 +50,28 @@ read -r -p "SMTP user (optional): " smtp_user
 read -r -s -p "SMTP password (optional): " smtp_password
 echo
 read -r -p "SMTP from address (optional): " smtp_from
+read -r -p "Security contact email [admin@plusmit.com]: " security_contact
+security_contact=${security_contact:-admin@plusmit.com}
 
 cat > .env <<EOF
 DATABASE_URL=postgres://${db_user}:${db_pass}@postgres:5432/${db_name}
 POSTGRES_DB=${db_name}
 POSTGRES_USER=${db_user}
 POSTGRES_PASSWORD=${db_pass}
+APP_BIND_ADDRESS=${app_bind}
+APP_PORT=${app_port}
 PAYLOAD_SECRET=$(secret)
+PAYLOAD_COOKIE_SECURE=true
+PAYLOAD_COOKIE_PREFIX=payload
 SESSION_SECRET=$(secret)
 ENCRYPTION_SECRET=$(secret)
 CSRF_SECRET=$(secret)
 NEXT_PUBLIC_SITE_URL=${site_url}
+PAYLOAD_ADMIN_ROUTE=/admin
+SECURITY_CONTACT_EMAIL=${security_contact}
+FORM_RATE_LIMIT=8
+FORM_RATE_WINDOW_MS=600000
+FORM_BODY_LIMIT_BYTES=65536
 NEXT_PUBLIC_GA_MEASUREMENT_ID=${ga_id}
 NEXT_PUBLIC_GTM_ID=${gtm_id}
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=${turnstile_site}

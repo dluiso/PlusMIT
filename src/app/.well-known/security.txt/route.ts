@@ -1,8 +1,11 @@
+const contactEmail = process.env.SECURITY_CONTACT_EMAIL || 'admin@plusmit.com'
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://plusmit.com').replace(/\/$/, '')
+
 const securityTxt = [
-  'Contact: mailto:admin@plusmit.com',
+  `Contact: mailto:${contactEmail}`,
   'Preferred-Languages: en, es',
-  'Canonical: https://plusmit.com/.well-known/security.txt',
-  'Policy: https://plusmit.com/privacy-policy',
+  `Canonical: ${siteUrl}/.well-known/security.txt`,
+  `Policy: ${siteUrl}/privacy-policy`,
   '',
 ].join('\n')
 
