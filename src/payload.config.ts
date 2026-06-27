@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { collections } from './collections'
 import { globals } from './globals'
 import { ADMIN_ROUTE } from './lib/admin-route'
+import { PAYLOAD_COOKIE_PREFIX } from './lib/payload-cookie'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -33,6 +34,7 @@ export default buildConfig({
   routes: {
     admin: ADMIN_ROUTE,
   },
+  cookiePrefix: PAYLOAD_COOKIE_PREFIX,
   collections,
   globals,
   editor: lexicalEditor({}),
