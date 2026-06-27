@@ -421,6 +421,106 @@ h4 {
     linear-gradient(135deg, rgb(255 255 255 / 9%), rgb(255 255 255 / 3%));
 }
 
+.media-panel__image {
+  object-fit: cover;
+  object-position: center;
+}
+
+.media-panel__image--contain {
+  object-fit: contain;
+}
+
+.media-panel__image--cover {
+  object-fit: cover;
+}
+
+.media-panel__image--fill {
+  object-fit: fill;
+}
+
+.media-panel__image--pos-top {
+  object-position: top;
+}
+
+.media-panel__image--pos-bottom {
+  object-position: bottom;
+}
+
+.media-panel__image--pos-left {
+  object-position: left;
+}
+
+.media-panel__image--pos-right {
+  object-position: right;
+}
+
+.media-panel--fit-contain {
+  background: #ffffff;
+}
+
+.media-panel--aspect-wide {
+  aspect-ratio: 16 / 9;
+}
+
+.media-panel--aspect-cinematic {
+  aspect-ratio: 21 / 9;
+}
+
+.media-panel--aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+.media-panel--aspect-tall {
+  aspect-ratio: 4 / 5;
+}
+
+.media-panel--frame-none {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.media-panel--frame-border {
+  box-shadow: none;
+}
+
+.media-panel--frame-shadow {
+  border-color: transparent;
+  box-shadow: 0 28px 86px rgb(15 35 75 / 18%);
+}
+
+.media-panel--pad-small {
+  padding: 0.75rem;
+}
+
+.media-panel--pad-medium {
+  padding: 1.25rem;
+}
+
+.media-panel--pad-large {
+  padding: 2rem;
+}
+
+.media-panel--pad-small .media-panel__image,
+.media-panel--pad-medium .media-panel__image,
+.media-panel--pad-large .media-panel__image {
+  inset: var(--media-inset, 0.75rem) !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.media-panel--pad-small {
+  --media-inset: 0.75rem;
+}
+
+.media-panel--pad-medium {
+  --media-inset: 1.25rem;
+}
+
+.media-panel--pad-large {
+  --media-inset: 2rem;
+}
+
 .dashboard-visual .media-panel {
   min-height: 310px;
   border-color: rgb(255 255 255 / 12%);
@@ -684,6 +784,18 @@ h4 {
     min-height: 320px;
   }
 
+  .mobile-layout--mediaFirst .hero-grid > :last-child,
+  .mobile-layout--mediaFirst .split-section > :last-child {
+    order: -1;
+  }
+
+  .mobile-layout--textFirst .hero-grid > :first-child,
+  .mobile-layout--textFirst .split-section > :first-child,
+  .mobile-layout--stack .hero-grid > :first-child,
+  .mobile-layout--stack .split-section > :first-child {
+    order: -1;
+  }
+
   .modern-card-grid--three,
   .modern-card-grid--four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -699,6 +811,23 @@ h4 {
     padding-bottom: 76px;
   }
 
+  .site-header__inner {
+    min-height: 64px;
+    gap: 0.75rem;
+  }
+
+  .site-header__brand {
+    min-width: 0;
+  }
+
+  .site-header__logo {
+    max-width: min(150px, 44vw);
+  }
+
+  .site-header__cta {
+    display: none !important;
+  }
+
   .section-block--compact,
   .section-block--standard,
   .section-block--spacious,
@@ -706,9 +835,50 @@ h4 {
     padding-block: 52px;
   }
 
+  .mobile-spacing--compact,
+  .mobile-spacing--compact.hero-section {
+    padding-block: 36px;
+  }
+
+  .hero-title--medium {
+    font-size: clamp(2.2rem, 10vw, 3.25rem);
+  }
+
+  .hero-title--large,
+  .hero-title--display {
+    font-size: clamp(2.5rem, 11vw, 3.65rem);
+  }
+
+  .section-title--large,
+  .section-title--display {
+    font-size: clamp(2.1rem, 9vw, 3.1rem);
+  }
+
   .section-heading-row {
     display: grid;
     align-items: start;
+  }
+
+  .cta-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .cta-row .button {
+    width: 100%;
+  }
+
+  .mobile-cta--inline .cta-row {
+    display: flex;
+  }
+
+  .mobile-cta--inline .cta-row .button {
+    width: auto;
+  }
+
+  .mobile-cta--hideSecondary .cta-row .button.secondary {
+    display: none;
   }
 
   .stats-row {
@@ -726,5 +896,40 @@ h4 {
   .modern-card-grid--three,
   .modern-card-grid--four {
     grid-template-columns: 1fr;
+  }
+
+  .mobile-media--hide .dashboard-visual,
+  .mobile-media--hide .media-panel {
+    display: none;
+  }
+
+  .dashboard-visual {
+    min-height: 0;
+    padding: 1rem;
+  }
+
+  .dashboard-visual__badges {
+    grid-template-columns: 1fr;
+  }
+
+  .media-panel,
+  .dashboard-visual .media-panel,
+  .media-panel--small,
+  .media-panel--medium,
+  .media-panel--large,
+  .dashboard-visual .media-panel--small,
+  .dashboard-visual .media-panel--large {
+    min-height: 220px;
+  }
+
+  .media-panel--aspect-wide,
+  .media-panel--aspect-cinematic,
+  .media-panel--aspect-square,
+  .media-panel--aspect-tall {
+    min-height: 0;
+  }
+
+  .media-panel--pad-large {
+    --media-inset: 1rem;
   }
 }

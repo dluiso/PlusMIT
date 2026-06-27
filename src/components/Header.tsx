@@ -23,13 +23,13 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
   const showCompanyName = !hideCompanyName || !logo?.url
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-header)] backdrop-blur-xl">
-      <div className="container flex min-h-[74px] items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3 font-bold">
+    <header className="site-header sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-header)] backdrop-blur-xl">
+      <div className="site-header__inner container flex min-h-[74px] items-center justify-between gap-4">
+        <Link href="/" className="site-header__brand flex items-center gap-3 font-bold">
           {logo?.url ? (
             <Image
               alt={logo.alt || companyName}
-              className="h-10 w-auto max-w-40 object-contain"
+              className="site-header__logo h-10 w-auto max-w-40 object-contain"
               height={logo.height || 40}
               sizes="(max-width: 768px) 140px, 160px"
               src={logo.url}
@@ -49,7 +49,7 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
             </a>
           ))}
         </nav>
-        <a className="button hidden md:inline-flex" href={ctaUrl}>
+        <a className="button site-header__cta hidden md:inline-flex" href={ctaUrl}>
           {ctaLabel} <span aria-hidden="true">-&gt;</span>
         </a>
       </div>

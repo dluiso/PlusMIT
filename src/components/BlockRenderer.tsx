@@ -35,7 +35,17 @@ type DesignControls = {
   customSummaryColor?: string
   customTitleColor?: string
   eyebrowColor?: ColorChoice
+  mediaAspectRatio?: 'auto' | 'wide' | 'cinematic' | 'square' | 'tall'
+  mediaBackgroundColor?: string
+  mediaFit?: 'cover' | 'contain' | 'fill'
+  mediaFrame?: 'none' | 'card' | 'border' | 'shadow'
+  mediaObjectPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right'
+  mediaPadding?: 'none' | 'small' | 'medium' | 'large'
   mediaSize?: 'small' | 'medium' | 'large'
+  mobileCtaLayout?: 'stack' | 'inline' | 'hideSecondary'
+  mobileLayout?: 'inherit' | 'stack' | 'textFirst' | 'mediaFirst'
+  mobileMedia?: 'show' | 'hide'
+  mobileSpacing?: 'compact' | 'standard'
   summaryColor?: ColorChoice
   summarySize?: 'small' | 'medium' | 'large'
   titleColor?: ColorChoice
@@ -118,15 +128,25 @@ function colorStyle(choice: unknown, custom?: string) {
 }
 
 function sectionClass(block: AnyBlock) {
+  const design = blockDesign(block)
   return cx(
     'section-block',
     `section-block--${block.theme || 'default'}`,
     `section-block--${block.spacing || 'standard'}`,
+    `mobile-layout--${design.mobileLayout || 'stack'}`,
+    `mobile-media--${design.mobileMedia || 'show'}`,
+    `mobile-spacing--${design.mobileSpacing || 'standard'}`,
+    `mobile-cta--${design.mobileCtaLayout || 'stack'}`,
   )
 }
 
 function sectionStyle(block: AnyBlock) {
   const backgroundColor = safeColor(blockDesign(block).customBackgroundColor)
+  return backgroundColor ? { backgroundColor } : undefined
+}
+
+function mediaStyle(design: DesignControls) {
+  const backgroundColor = safeColor(design.mediaBackgroundColor)
   return backgroundColor ? { backgroundColor } : undefined
 }
 
@@ -243,22 +263,37 @@ function CardGrid({ block, items, featuredIndex }: { block: AnyBlock; items?: Ca
 }
 
 function MediaPanel({
+  design,
   image,
-  mediaSize = 'medium',
   priority = false,
 }: {
+  design?: DesignControls
   image?: MediaValue
-  mediaSize?: AnyBlock['mediaSize']
   priority?: boolean
 }) {
   const media = getMediaInfo(image, priority ? 'hero' : 'card')
+  const mediaDesign = design || {}
 
   return (
-    <div className={cx('media-panel', `media-panel--${mediaSize || 'medium'}`)}>
+    <div
+      className={cx(
+        'media-panel',
+        `media-panel--${mediaDesign.mediaSize || 'medium'}`,
+        `media-panel--fit-${mediaDesign.mediaFit || 'cover'}`,
+        `media-panel--aspect-${mediaDesign.mediaAspectRatio || 'auto'}`,
+        `media-panel--frame-${mediaDesign.mediaFrame || 'card'}`,
+        `media-panel--pad-${mediaDesign.mediaPadding || 'none'}`,
+      )}
+      style={mediaStyle(mediaDesign)}
+    >
       {media?.url ? (
         <Image
           alt={media.alt}
-          className="object-cover"
+          className={cx(
+            'media-panel__image',
+            `media-panel__image--${mediaDesign.mediaFit || 'cover'}`,
+            `media-panel__image--pos-${mediaDesign.mediaObjectPosition || 'center'}`,
+          )}
           fill
           priority={priority}
           sizes={priority ? '(min-width: 960px) 42vw, 100vw' : '(min-width: 960px) 38vw, 100vw'}
@@ -291,7 +326,7 @@ function DashboardHeroVisual({ block }: { block: AnyBlock }) {
           </div>
         ))}
       </div>
-      <MediaPanel image={block.backgroundImage} mediaSize={blockDesign(block).mediaSize} priority />
+      <MediaPanel design={blockDesign(block)} image={block.backgroundImage} priority />
     </div>
   )
 }
@@ -471,7 +506,7 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
                     ) : null}
                   </div>
                   {block.mediaPosition !== 'none' ? (
-                    <MediaPanel image={block.image || block.backgroundImage} mediaSize={blockDesign(block).mediaSize} />
+                    <MediaPanel design={blockDesign(block)} image={block.image || block.backgroundImage} />
                   ) : null}
                 </div>
               </section>
