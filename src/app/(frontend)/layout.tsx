@@ -87,6 +87,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
           companyName={settings.site.companyName}
           ctaLabel={settings.site.defaultCtaLabel}
           ctaUrl={settings.site.defaultCtaUrl}
+          hideCompanyName={settings.branding.hideCompanyNameInHeader}
           items={mainNav}
           logo={
             settings.branding.defaultThemeMode === 'dark'

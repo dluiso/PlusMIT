@@ -13,12 +13,14 @@ type Props = {
   companyName: string
   ctaLabel: string
   ctaUrl: string
+  hideCompanyName?: boolean
   items?: NavItem[]
   logo?: MediaInfo | null
 }
 
-export function Header({ companyName, ctaLabel, ctaUrl, items = [], logo }: Props) {
+export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false, items = [], logo }: Props) {
   const visibleItems = items.filter((item) => item.visible !== false)
+  const showCompanyName = !hideCompanyName || !logo?.url
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-header)] backdrop-blur-xl">
@@ -38,7 +40,7 @@ export function Header({ companyName, ctaLabel, ctaUrl, items = [], logo }: Prop
               +
             </span>
           )}
-          <span>{companyName}</span>
+          {showCompanyName ? <span>{companyName}</span> : null}
         </Link>
         <nav className="hidden items-center gap-5 text-sm text-[var(--color-muted)] md:flex" aria-label="Main navigation">
           {visibleItems.map((item) => (

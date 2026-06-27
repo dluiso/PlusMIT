@@ -90,6 +90,7 @@ export async function getPublicSettings() {
       logo: getMediaInfo(branding?.logo, 'card'),
       darkLogo: getMediaInfo(branding?.darkLogo, 'card'),
       favicon: getMediaInfo(branding?.favicon),
+      hideCompanyNameInHeader: Boolean(branding?.hideCompanyNameInHeader),
       primaryColor: safeColor(branding?.primaryColor, '#38bdf8'),
       secondaryColor: safeColor(branding?.secondaryColor, '#1d4ed8'),
       accentColor: safeColor(branding?.accentColor, '#22c55e'),

@@ -78,6 +78,12 @@ export const Branding: GlobalConfig = {
     { name: 'logo', type: 'upload', relationTo: 'media' },
     { name: 'darkLogo', type: 'upload', relationTo: 'media' },
     { name: 'favicon', type: 'upload', relationTo: 'media' },
+    {
+      name: 'hideCompanyNameInHeader',
+      label: 'Hide company name in header when logo is available',
+      type: 'checkbox',
+      defaultValue: false,
+    },
     { name: 'primaryColor', type: 'text', defaultValue: '#38bdf8' },
     { name: 'secondaryColor', type: 'text', defaultValue: '#1d4ed8' },
     { name: 'accentColor', type: 'text', defaultValue: '#22c55e' },
