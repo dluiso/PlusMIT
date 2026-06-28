@@ -86,6 +86,12 @@ type AnyBlock = {
   viewAllCta?: { label?: string; url?: string }
 } & DesignControls
 
+type BlockRendererProps = {
+  blocks?: AnyBlock[]
+  composerPreview?: boolean
+  selectedBlockIndex?: number
+}
+
 const colorPattern = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -138,6 +144,15 @@ function sectionClass(block: AnyBlock) {
     `mobile-spacing--${design.mobileSpacing || 'standard'}`,
     `mobile-cta--${design.mobileCtaLayout || 'stack'}`,
   )
+}
+
+function composerSectionProps(index: number, selectedBlockIndex?: number, composerPreview = false) {
+  if (!composerPreview) return {}
+
+  return {
+    'data-composer-block': String(index),
+    className: cx(index === selectedBlockIndex && 'composer-preview-block--selected'),
+  }
 }
 
 function sectionStyle(block: AnyBlock) {
@@ -476,7 +491,7 @@ function ContactDetails({ items }: { items?: ContactItem[] }) {
   )
 }
 
-export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
+export async function BlockRenderer({ blocks, composerPreview = false, selectedBlockIndex }: BlockRendererProps) {
   if (!blocks?.length) return null
 
   return (
@@ -486,8 +501,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           const key = `${block.blockType || 'block'}-${block.sectionId || index}`
 
           if (block.blockType === 'hero') {
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={cx(sectionClass(block), 'hero-section')} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), 'hero-section', composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'hero-grid')}>
                   <div>
@@ -503,8 +525,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'splitHero' || block.blockType === 'imageText' || block.blockType === 'smartfiche') {
             const reverse = block.mediaPosition === 'left'
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'split-section', reverse && 'split-section--reverse')}>
                   <div>
@@ -526,8 +555,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
 
           if (block.blockType === 'contactForm') {
             const form = typeof block.form === 'object' ? block.form : null
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={cx(sectionClass(block), 'contact-section')} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), 'contact-section', composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'contact-grid')}>
                   <div className="contact-panel">
@@ -541,8 +577,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           }
 
           if (block.blockType === 'stats') {
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <div className={innerClass(block)}>
                   <SectionHeader block={block} />
                   <StatsRow stats={block.stats} />
@@ -552,8 +595,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           }
 
           if (block.blockType === 'richText' || block.blockType === 'securityNotice') {
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <SectionBackground block={block} />
                 <div className={innerClass(block)}>
                   <div className="surface prose-panel">
@@ -566,8 +616,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           }
 
           if (block.blockType === 'technologyStack') {
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <div className={innerClass(block)}>
                   <SectionHeader block={block} />
                   <div className="tag-cloud">
@@ -583,8 +640,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           }
 
           if (block.blockType === 'ctaBanner' || block.blockType === 'recoveryEmergencyCta') {
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <SectionBackground block={block} />
                 <div className={cx(innerClass(block), 'cta-panel')}>
                   <SectionHeader block={block} />
@@ -595,8 +659,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           }
 
           if (block.blockType === 'processTimeline') {
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
             return (
-              <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
                 <div className={innerClass(block)}>
                   <SectionHeader block={block} />
                   <Timeline steps={block.steps} />
@@ -606,8 +677,15 @@ export async function BlockRenderer({ blocks }: { blocks?: AnyBlock[] }) {
           }
 
           const items = await resolveItems(block)
+          const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
           return (
-            <section className={sectionClass(block)} id={block.sectionId || undefined} key={key} style={sectionStyle(block)}>
+            <section
+              className={cx(sectionClass(block), composerProps.className)}
+              data-composer-block={composerProps['data-composer-block']}
+              id={block.sectionId || undefined}
+              key={key}
+              style={sectionStyle(block)}
+            >
               <SectionBackground block={block} />
               <div className={innerClass(block)}>
                 <div className="section-heading-row">

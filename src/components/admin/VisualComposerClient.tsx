@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { adminPath } from '@/lib/admin-route'
 
 export type PageBlock = {
@@ -124,8 +124,12 @@ function publicPathFromSlug(slug?: string) {
   return `/${slug.replace(/^\/+/, '')}`
 }
 
-function publicUrlFromSlug(siteUrl: string, slug?: string) {
-  return new URL(publicPathFromSlug(slug), siteUrl).toString()
+function publicUrlFromSlug(siteUrl: string, slug?: string, selectedBlockIndex = 0, version = 0) {
+  const url = new URL(publicPathFromSlug(slug), siteUrl)
+  url.searchParams.set('composer', '1')
+  url.searchParams.set('block', String(selectedBlockIndex))
+  if (version > 0) url.searchParams.set('v', String(version))
+  return url.toString()
 }
 
 function formatDate(value?: string) {
@@ -244,10 +248,11 @@ export function VisualComposerClient({
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState('')
   const [previewVersion, setPreviewVersion] = useState(0)
+  const previewRef = useRef<HTMLIFrameElement>(null)
 
   const selectedPage = useMemo(() => getSelectedPage(pages, selectedPageId), [pages, selectedPageId])
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
-  const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug)
+  const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug, selectedBlockIndex, previewVersion)
 
   function selectPage(page: PageSummary) {
     setSelectedPageId(page.id)
@@ -310,6 +315,13 @@ export function VisualComposerClient({
     setSaveState('saved')
     setMessage('Saved. Preview refreshed.')
     setPreviewVersion((current) => current + 1)
+  }
+
+  function scrollPreviewToSelectedBlock() {
+    const iframe = previewRef.current
+    const doc = iframe?.contentDocument
+    const block = doc?.querySelector(`[data-composer-block="${selectedBlockIndex}"]`)
+    block?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
@@ -385,6 +397,8 @@ export function VisualComposerClient({
                 <iframe
                   className="visual-composer__preview"
                   key={`${selectedPage.id}-${selectedPreviewSize}-${previewVersion}`}
+                  onLoad={scrollPreviewToSelectedBlock}
+                  ref={previewRef}
                   src={previewUrl}
                   style={{ width: selectedPreviewSize > 0 ? `${selectedPreviewSize}px` : '100%' }}
                   title={`Preview of ${selectedPage.title || selectedPage.slug}`}

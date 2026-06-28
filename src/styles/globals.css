@@ -154,6 +154,27 @@ h4 {
   color: var(--color-text);
 }
 
+.composer-preview-block--selected {
+  scroll-margin-top: 24px;
+  outline: 4px solid #3dbcf6;
+  outline-offset: -4px;
+}
+
+.composer-preview-block--selected::after {
+  position: absolute;
+  z-index: 10;
+  top: 14px;
+  right: 14px;
+  border-radius: 999px;
+  background: #071a35;
+  color: #ffffff;
+  content: 'Selected block';
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
+  pointer-events: none;
+}
+
 .section-block--compact {
   padding-block: 48px;
 }

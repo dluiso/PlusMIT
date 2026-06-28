@@ -1,7 +1,8 @@
 .visual-composer {
   display: grid;
   gap: 14px;
-  max-width: 1680px;
+  width: 100%;
+  max-width: none;
   padding: 8px 0 48px;
 }
 
@@ -105,7 +106,7 @@
 
 .visual-composer__workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.38fr);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 32vw);
   gap: 14px;
   align-items: start;
 }

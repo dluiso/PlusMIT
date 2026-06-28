@@ -5,6 +5,22 @@ import { getPayloadClient } from '@/lib/payload'
 import { buildMetadata } from '@/lib/seo'
 
 type Args = { params: Promise<{ slug: string }> }
+type PageArgs = Args & { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+async function getComposerPreviewProps(searchParams?: PageArgs['searchParams']) {
+  const params = searchParams ? await searchParams : {}
+  const composerPreview = firstParam(params.composer) === '1'
+  const selectedBlockIndex = Number(firstParam(params.block) || 0)
+
+  return {
+    composerPreview,
+    selectedBlockIndex: Number.isInteger(selectedBlockIndex) && selectedBlockIndex >= 0 ? selectedBlockIndex : 0,
+  }
+}
 
 async function getSolution(slug: string) {
   const payload = await getPayloadClient()
@@ -27,7 +43,7 @@ export async function generateMetadata({ params }: Args) {
   return buildMetadata(await getSolution(slug))
 }
 
-export default async function SolutionPage({ params }: Args) {
+export default async function SolutionPage({ params, searchParams }: PageArgs) {
   const { slug } = await params
   const page = await getSolution(slug)
   if (!page) notFound()
@@ -41,7 +57,7 @@ export default async function SolutionPage({ params }: Args) {
           { label: page.title, href: `/solutions/${slug}` },
         ]}
       />
-      <BlockRenderer blocks={page.layout as never} />
+      <BlockRenderer blocks={page.layout as never} {...(await getComposerPreviewProps(searchParams))} />
     </>
   )
 }
