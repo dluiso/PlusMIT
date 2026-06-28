@@ -25,6 +25,14 @@ export default buildConfig({
         dashboard: {
           Component: '@/components/admin/PlusMITDashboard#PlusMITDashboard',
         },
+        visualComposer: {
+          Component: '@/components/admin/VisualComposer#VisualComposer',
+          path: '/visual-composer',
+          exact: true,
+          meta: {
+            title: 'Visual Composer - PlusMIT CMS',
+          },
+        },
       },
     },
     meta: {

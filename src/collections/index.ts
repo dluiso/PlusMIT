@@ -120,7 +120,10 @@ export const Pages: CollectionConfig = {
     group: adminGroups.site,
     defaultColumns: ['title', 'slug', 'status', 'updatedAt'],
     livePreview: {
-      url: ({ data }) => `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/${data.slug || ''}`,
+      url: ({ data }) => {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        return new URL(data.slug === 'home' || !data.slug ? '/' : `/${data.slug}`, baseUrl).toString()
+      },
     },
   },
   access: {

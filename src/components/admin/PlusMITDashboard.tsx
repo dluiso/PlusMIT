@@ -33,6 +33,7 @@ const metrics: DashboardMetric[] = [
 ]
 
 const quickLinks = [
+  { label: 'Visual Composer', href: adminPath('/visual-composer'), description: 'Preview page structure by viewport.' },
   { label: 'Edit Homepage', href: `${adminPath('/collections/pages')}?where[slug][equals]=home`, description: 'Hero, homepage blocks, and SEO.' },
   { label: 'Create Service', href: adminPath('/collections/services/create'), description: 'Add a new service page.' },
   { label: 'Lead Submissions', href: adminPath('/collections/lead-submissions'), description: 'Review form requests.' },
