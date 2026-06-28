@@ -187,6 +187,13 @@ h4 {
   color: var(--color-text);
 }
 
+@supports (content-visibility: auto) {
+  .section-block:not([data-composer-block]):not(:first-child) {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 720px;
+  }
+}
+
 .composer-preview-block--selected {
   scroll-margin-top: 24px;
   outline: 4px solid #3dbcf6;

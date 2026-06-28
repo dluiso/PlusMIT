@@ -500,13 +500,13 @@ async function resolveItems(block: AnyBlock) {
   return getCollectionCards(block, asLimit(block.itemLimit, block.blockType === 'industryCards' ? 6 : 8))
 }
 
-function SectionBackground({ block }: { block: AnyBlock }) {
+function SectionBackground({ block, priority = false }: { block: AnyBlock; priority?: boolean }) {
   const media = block.mediaPosition === 'background' ? getMediaInfo(block.backgroundImage, 'hero') : null
   if (!media?.url) return null
   const opacity = Math.min(Math.max(block.overlayOpacity || 0, 0), 90) / 100
   return (
     <>
-      <Image alt="" className="section-bg-image" fill sizes="100vw" src={media.url} />
+      <Image alt="" className="section-bg-image" fill priority={priority} sizes="100vw" src={media.url} />
       <span className="section-bg-overlay" style={{ opacity }} />
     </>
   )
@@ -566,7 +566,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
                 key={key}
                 style={sectionStyle(block)}
               >
-                <SectionBackground block={block} />
+                <SectionBackground block={block} priority />
                 <div className={cx(innerClass(block), 'hero-grid')}>
                   <div>
                     <SectionHeader block={block} heading="h1" />

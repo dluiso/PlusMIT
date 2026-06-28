@@ -102,11 +102,15 @@ export type PageSummary = {
 export type MediaOption = {
   alt?: string | null
   filename?: string | null
+  filesize?: number | null
+  height?: number | null
   id: number | string
+  mimeType?: string | null
   sizes?: Record<string, { url?: string | null } | undefined> | null
   title?: string | null
   updatedAt?: string
   url?: string | null
+  width?: number | null
 }
 
 type VisualComposerClientProps = {
@@ -433,6 +437,15 @@ function CardItemsEditor({
     onChange(currentItems.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)))
   }
 
+  function duplicateItem(index: number) {
+    const item = currentItems[index]
+    if (!item) return
+
+    const nextItems = [...currentItems]
+    nextItems.splice(index + 1, 0, { ...item, title: item.title ? `${item.title} copy` : 'New item' })
+    onChange(nextItems)
+  }
+
   function moveItem(index: number, direction: -1 | 1) {
     const nextIndex = index + direction
     if (nextIndex < 0 || nextIndex >= currentItems.length) return
@@ -453,9 +466,12 @@ function CardItemsEditor({
       </div>
       {!currentItems.length ? <p>{emptyLabel}</p> : null}
       {currentItems.map((item, index) => (
-        <div className="visual-composer__arrayItem" key={`${item.title || 'item'}-${index}`}>
-          <div className="visual-composer__arrayItemHeader">
-            <strong>{item.title || `Item ${index + 1}`}</strong>
+        <details className="visual-composer__arrayItem" key={`${item.title || 'item'}-${index}`} open={index === 0}>
+          <summary className="visual-composer__arrayItemHeader">
+            <strong>
+              <span>{index + 1}</span>
+              {item.title || `Item ${index + 1}`}
+            </strong>
             <div>
               <button disabled={index === 0} onClick={() => moveItem(index, -1)} type="button">
                 Up
@@ -463,18 +479,21 @@ function CardItemsEditor({
               <button disabled={index === currentItems.length - 1} onClick={() => moveItem(index, 1)} type="button">
                 Down
               </button>
+              <button onClick={() => duplicateItem(index)} type="button">
+                Duplicate
+              </button>
               <button onClick={() => onChange(currentItems.filter((_, itemIndex) => itemIndex !== index))} type="button">
                 Remove
               </button>
             </div>
-          </div>
+          </summary>
           <div className="visual-composer__fieldGrid">
             <TextField label="Title" onChange={(value) => updateItem(index, { title: value })} value={item.title} />
             <TextField label="Icon" onChange={(value) => updateItem(index, { icon: value })} value={item.icon} />
           </div>
           <TextAreaField label="Summary" onChange={(value) => updateItem(index, { summary: value })} value={item.summary} />
           <TextField label="Optional URL" onChange={(value) => updateItem(index, { url: value })} value={item.url} />
-        </div>
+        </details>
       ))}
     </div>
   )
@@ -495,6 +514,25 @@ function StatItemsEditor({
     onChange(currentItems.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)))
   }
 
+  function moveItem(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= currentItems.length) return
+
+    const nextItems = [...currentItems]
+    const [item] = nextItems.splice(index, 1)
+    nextItems.splice(nextIndex, 0, item)
+    onChange(nextItems)
+  }
+
+  function duplicateItem(index: number) {
+    const item = currentItems[index]
+    if (!item) return
+
+    const nextItems = [...currentItems]
+    nextItems.splice(index + 1, 0, { ...item, label: item.label ? `${item.label} copy` : 'Metric label' })
+    onChange(nextItems)
+  }
+
   return (
     <div className="visual-composer__arrayEditor">
       <div className="visual-composer__arrayHeader">
@@ -504,15 +542,32 @@ function StatItemsEditor({
         </button>
       </div>
       {currentItems.map((item, index) => (
-        <div className="visual-composer__arrayItem" key={`${item.label || 'stat'}-${index}`}>
+        <details className="visual-composer__arrayItem" key={`${item.label || 'stat'}-${index}`} open={index === 0}>
+          <summary className="visual-composer__arrayItemHeader">
+            <strong>
+              <span>{index + 1}</span>
+              {item.value || `Metric ${index + 1}`}
+            </strong>
+            <div>
+              <button disabled={index === 0} onClick={() => moveItem(index, -1)} type="button">
+                Up
+              </button>
+              <button disabled={index === currentItems.length - 1} onClick={() => moveItem(index, 1)} type="button">
+                Down
+              </button>
+              <button onClick={() => duplicateItem(index)} type="button">
+                Duplicate
+              </button>
+              <button onClick={() => onChange(currentItems.filter((_, itemIndex) => itemIndex !== index))} type="button">
+                Remove
+              </button>
+            </div>
+          </summary>
           <div className="visual-composer__fieldGrid">
             <TextField label="Value" onChange={(value) => updateItem(index, { value })} value={item.value} />
             <TextField label="Label" onChange={(value) => updateItem(index, { label: value })} value={item.label} />
           </div>
-          <button onClick={() => onChange(currentItems.filter((_, itemIndex) => itemIndex !== index))} type="button">
-            Remove
-          </button>
-        </div>
+        </details>
       ))}
     </div>
   )
@@ -526,6 +581,31 @@ function getMediaOption(mediaOptions: MediaOption[], value?: MediaReference) {
 function getMediaPreviewUrl(media?: MediaOption | null) {
   if (!media) return ''
   return media.sizes?.card?.url || media.sizes?.thumbnail?.url || media.url || (media.filename ? `/api/media/file/${media.filename}` : '')
+}
+
+function getMediaWarnings(media?: MediaOption | null) {
+  if (!media) return []
+
+  const warnings: string[] = []
+  const mimeType = media.mimeType || ''
+
+  if (!media.alt?.trim()) {
+    warnings.push('Missing alt text')
+  }
+
+  if (mimeType && !mimeType.startsWith('image/')) {
+    warnings.push('Not an image asset')
+  }
+
+  if (typeof media.filesize === 'number' && media.filesize > 800 * 1024) {
+    warnings.push('Large file')
+  }
+
+  if (media.width && media.height && media.width < 900 && media.height < 600) {
+    warnings.push('Small source')
+  }
+
+  return warnings
 }
 
 function MediaPreview({
@@ -542,6 +622,7 @@ function MediaPreview({
   const media = getMediaOption(mediaOptions, value)
   const previewUrl = getMediaPreviewUrl(media)
   const title = media?.title || media?.alt || media?.filename || (value ? `Media ${value}` : 'No media selected')
+  const warnings = getMediaWarnings(media)
 
   return (
     <button className="visual-composer__mediaPreview" onClick={onSelect} type="button">
@@ -557,7 +638,18 @@ function MediaPreview({
         <div className="visual-composer__mediaPreviewEmpty">No preview available</div>
       )}
       <strong>{title}</strong>
-      <small>{media ? `ID ${media.id}` : 'Choose an image from Media, or upload one first.'}</small>
+      <small>
+        {media
+          ? [`ID ${media.id}`, media.mimeType, media.width && media.height ? `${media.width}x${media.height}` : null].filter(Boolean).join(' - ')
+          : 'Choose an image from Media, or upload one first.'}
+      </small>
+      {warnings.length ? (
+        <span className="visual-composer__mediaWarnings">
+          {warnings.map((warning) => (
+            <em key={warning}>{warning}</em>
+          ))}
+        </span>
+      ) : null}
     </button>
   )
 }
@@ -616,12 +708,14 @@ function MediaLibrary({
           const previewUrl = getMediaPreviewUrl(media)
           const title = media.title || media.alt || media.filename || `Media ${media.id}`
           const isSelected = selectedValue ? String(selectedValue) === String(media.id) : false
+          const warnings = getMediaWarnings(media)
 
           return (
             <button data-selected={isSelected} key={media.id} onClick={() => onChoose(media.id)} type="button">
               {previewUrl ? <span style={{ backgroundImage: `url("${previewUrl}")` }} /> : <span data-empty="true">No preview</span>}
               <strong>{title}</strong>
               <small>{media.filename || `ID ${media.id}`}</small>
+              {warnings.length ? <small data-warning="true">{warnings.join(' - ')}</small> : null}
             </button>
           )
         })}

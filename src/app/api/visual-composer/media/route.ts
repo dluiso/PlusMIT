@@ -4,11 +4,15 @@ import { getPayloadClient } from '@/lib/payload'
 type MediaDocument = {
   alt?: string | null
   filename?: string | null
+  filesize?: number | null
+  height?: number | null
   id: number | string
+  mimeType?: string | null
   sizes?: Record<string, { url?: string | null } | undefined> | null
   title?: string | null
   updatedAt?: string
   url?: string | null
+  width?: number | null
 }
 
 function canUseAdminMutation(request: NextRequest) {
@@ -35,11 +39,15 @@ function normalizeMedia(doc: MediaDocument): MediaDocument {
   return {
     alt: doc.alt,
     filename: doc.filename,
+    filesize: doc.filesize,
+    height: doc.height,
     id: doc.id,
+    mimeType: doc.mimeType,
     sizes: doc.sizes,
     title: doc.title,
     updatedAt: doc.updatedAt,
     url: doc.url,
+    width: doc.width,
   }
 }
 

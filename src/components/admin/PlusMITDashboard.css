@@ -130,7 +130,8 @@
 }
 
 .plusmit-dashboard__quickLinks a,
-.plusmit-dashboard__leadList a {
+.plusmit-dashboard__leadList a,
+.plusmit-dashboard__watchList a {
   display: grid;
   gap: 4px;
   border: 1px solid var(--theme-elevation-150);
@@ -142,17 +143,20 @@
 
 .plusmit-dashboard__quickLinks a:hover,
 .plusmit-dashboard__leadList a:hover,
+.plusmit-dashboard__watchList a:hover,
 .plusmit-dashboard__metric:hover {
   border-color: var(--theme-success-500);
 }
 
 .plusmit-dashboard__quickLinks span,
 .plusmit-dashboard__leadList span,
-.plusmit-dashboard__leadList small {
+.plusmit-dashboard__leadList small,
+.plusmit-dashboard__watchList span {
   color: var(--theme-elevation-600);
 }
 
-.plusmit-dashboard__leadList {
+.plusmit-dashboard__leadList,
+.plusmit-dashboard__watchList {
   display: grid;
   gap: 10px;
 }
@@ -202,6 +206,17 @@
   border: 1px dashed var(--theme-elevation-200);
   border-radius: 8px;
   padding: 18px;
+}
+
+.plusmit-dashboard__inlineAction {
+  display: inline-flex;
+  margin-top: 14px;
+  border: 1px solid var(--theme-success-500);
+  border-radius: 999px;
+  color: var(--theme-text);
+  font-weight: 800;
+  padding: 8px 12px;
+  text-decoration: none;
 }
 
 .plusmit-dashboard__status {
