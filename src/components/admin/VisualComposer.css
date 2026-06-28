@@ -106,7 +106,7 @@
 
 .visual-composer__workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 32vw);
+  grid-template-columns: minmax(680px, 1fr) minmax(360px, 420px);
   gap: 14px;
   align-items: start;
 }
@@ -203,6 +203,24 @@
   margin-top: 6px;
 }
 
+.visual-composer__toolbarActions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.visual-composer__modePill {
+  width: fit-content;
+  margin-top: 0 !important;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 999px;
+  background: var(--theme-elevation-0);
+  color: var(--theme-elevation-650);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 9px;
+}
+
 .visual-composer__previewWrap {
   display: flex;
   height: calc(100vh - 360px);
@@ -224,6 +242,10 @@
     -10px 0;
   background-size: 20px 20px;
   padding: 16px;
+}
+
+.visual-composer__previewWrap[data-preview-size='mobile'] {
+  align-items: flex-start;
 }
 
 .visual-composer__preview {
@@ -464,6 +486,75 @@
 
 .visual-composer__tabPanel {
   min-width: 0;
+}
+
+.visual-composer__responsiveTools,
+.visual-composer__responsivePresets {
+  display: grid;
+  gap: 10px;
+}
+
+.visual-composer__responsiveTools {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  padding: 12px;
+}
+
+.visual-composer__responsiveTools > div:first-child,
+.visual-composer__responsivePresets button {
+  display: grid;
+  gap: 4px;
+}
+
+.visual-composer__responsiveTools > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.visual-composer__responsiveTools strong,
+.visual-composer__responsivePresets strong {
+  color: var(--theme-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.visual-composer__responsiveTools small,
+.visual-composer__responsivePresets small {
+  color: var(--theme-elevation-550);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.visual-composer__responsiveTools button,
+.visual-composer__responsivePresets button {
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--theme-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 10px;
+}
+
+.visual-composer__responsivePresets {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.visual-composer__responsivePresets button {
+  min-height: 74px;
+  text-align: left;
+}
+
+.visual-composer__responsiveTools button:hover,
+.visual-composer__responsivePresets button:hover {
+  border-color: var(--theme-success-500);
 }
 
 .visual-composer__mediaPanel {
@@ -975,7 +1066,8 @@
 }
 
 .visual-composer__message--dirty,
-.visual-composer__message--saved {
+.visual-composer__message--saved,
+.visual-composer__message--success {
   border-color: var(--theme-success-500);
 }
 
@@ -1034,8 +1126,14 @@
   }
 
   .visual-composer__mediaGrid,
-  .visual-composer__uploadFields {
+  .visual-composer__uploadFields,
+  .visual-composer__responsivePresets,
+  .visual-composer__responsiveTools {
     grid-template-columns: 1fr;
+  }
+
+  .visual-composer__toolbarActions {
+    justify-items: stretch;
   }
 
   .visual-composer__mediaActions {

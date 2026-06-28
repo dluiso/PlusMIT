@@ -160,6 +160,11 @@ h4 {
   outline-offset: -4px;
 }
 
+[data-composer-block]:hover {
+  outline: 2px solid color-mix(in srgb, #3dbcf6 70%, transparent);
+  outline-offset: -2px;
+}
+
 .composer-preview-block--selected::after {
   position: absolute;
   z-index: 10;

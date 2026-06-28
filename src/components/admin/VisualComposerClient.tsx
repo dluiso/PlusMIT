@@ -119,6 +119,11 @@ type VisualComposerClientProps = {
 
 type SaveState = 'dirty' | 'error' | 'idle' | 'saving' | 'saved'
 type UploadState = 'error' | 'idle' | 'success' | 'uploading'
+type ResponsivePreset = {
+  description: string
+  label: string
+  patch: NonNullable<PageBlock['design']>
+}
 
 type LayoutAction =
   | { type: 'delete'; index: number }
@@ -166,6 +171,29 @@ const inspectorTabs: Array<{ id: InspectorTab; label: string }> = [
   { id: 'media', label: 'Media' },
   { id: 'responsive', label: 'Responsive' },
   { id: 'advanced', label: 'Advanced' },
+]
+
+const responsivePresets: ResponsivePreset[] = [
+  {
+    description: 'Text first, standard spacing, stacked CTAs.',
+    label: 'Balanced mobile',
+    patch: { mobileCtaLayout: 'stack', mobileLayout: 'textFirst', mobileMedia: 'show', mobileSpacing: 'standard' },
+  },
+  {
+    description: 'Less vertical space for dense pages.',
+    label: 'Compact mobile',
+    patch: { mobileCtaLayout: 'stack', mobileLayout: 'textFirst', mobileMedia: 'show', mobileSpacing: 'compact' },
+  },
+  {
+    description: 'Lead with the visual on phones.',
+    label: 'Media first',
+    patch: { mobileCtaLayout: 'stack', mobileLayout: 'mediaFirst', mobileMedia: 'show', mobileSpacing: 'standard' },
+  },
+  {
+    description: 'Hide the visual and keep only copy/CTAs.',
+    label: 'Text only mobile',
+    patch: { mobileCtaLayout: 'stack', mobileLayout: 'textFirst', mobileMedia: 'hide', mobileSpacing: 'compact' },
+  },
 ]
 
 const insertBlockOptions = [
@@ -246,6 +274,10 @@ function formatDate(value?: string) {
 function getBlockLabel(blockType?: string) {
   if (!blockType) return 'Block'
   return blockLabels[blockType] || blockType
+}
+
+function getPreviewLabel(width: number) {
+  return previewSizes.find((size) => size.width === width)?.label || 'Canvas'
 }
 
 function getBlockTitle(block: PageBlock, index: number) {
@@ -607,6 +639,29 @@ function blockSupportsPrimaryImage(blockType?: string) {
   return blockType ? primaryImageBlockTypes.has(blockType) : false
 }
 
+function blockSupportsHighlight(blockType?: string) {
+  return ['ctaBanner', 'hero', 'imageText', 'recoveryEmergencyCta', 'richText', 'smartfiche', 'splitHero'].includes(blockType || '')
+}
+
+function blockSupportsCtas(blockType?: string) {
+  return ['ctaBanner', 'hero', 'imageText', 'recoveryEmergencyCta', 'splitHero'].includes(blockType || '')
+}
+
+function blockSupportsViewAllCta(blockType?: string) {
+  return ['industryCards', 'servicesGrid'].includes(blockType || '')
+}
+
+function blockSupportsResponsiveMedia(blockType?: string) {
+  return blockType === 'hero' || blockSupportsPrimaryImage(blockType)
+}
+
+function getVisibleInspectorTabs(blockType?: string) {
+  return inspectorTabs.filter((tab) => {
+    if (tab.id === 'media') return blockType === 'hero' || blockSupportsPrimaryImage(blockType)
+    return true
+  })
+}
+
 function getBlockGuide(blockType?: string) {
   if (blockType === 'hero') {
     return 'Hero blocks control the first screen: headline, CTA, stats, and the main visual. Use Media position to switch between side image, full background, or no image.'
@@ -803,6 +858,10 @@ export function VisualComposerClient({
   const selectedCardArrayConfig = getCardArrayConfig(selectedBlockType)
   const showCardControls = blockSupportsCards(selectedBlockType)
   const showPrimaryImage = blockSupportsPrimaryImage(selectedBlockType)
+  const showCtaControls = blockSupportsCtas(selectedBlockType)
+  const showResponsiveMedia = blockSupportsResponsiveMedia(selectedBlockType)
+  const visibleInspectorTabs = useMemo(() => getVisibleInspectorTabs(selectedBlockType), [selectedBlockType])
+  const currentInspectorTab = visibleInspectorTabs.some((tab) => tab.id === activeInspectorTab) ? activeInspectorTab : 'content'
   const effectiveMediaField: MediaFieldName = showPrimaryImage ? activeMediaField : 'backgroundImage'
   const effectiveMediaValue = editorBlock?.[effectiveMediaField]
   const hasUnsavedBlockChanges = saveState === 'dirty'
@@ -993,6 +1052,19 @@ export function VisualComposerClient({
     setMessage(`Preset applied: ${preset.label}. Save to publish it.`)
   }
 
+  function applyResponsivePreset(preset: ResponsivePreset) {
+    setEditorBlock((current) => ({
+      ...(current || {}),
+      design: {
+        ...(current?.design || {}),
+        ...preset.patch,
+      },
+    }))
+    setSaveState('dirty')
+    setMessage(`Responsive preset applied: ${preset.label}. Save to publish it.`)
+    setSelectedPreviewSize(390)
+  }
+
   async function saveBlock() {
     if (!selectedPage || !editorBlock) return
 
@@ -1009,7 +1081,7 @@ export function VisualComposerClient({
     if (!response.ok) {
       const error = (await response.json().catch(() => null)) as { error?: string } | null
       setSaveState('error')
-      setMessage(error?.error || 'The block could not be saved.')
+      setMessage(error?.error || 'The block could not be saved. Check the fields in this block and try again.')
       return
     }
 
@@ -1021,7 +1093,7 @@ export function VisualComposerClient({
     }
 
     setSaveState('saved')
-    setMessage('Saved. Preview refreshed.')
+    setMessage(`Saved ${getBlockLabel(editorBlock.blockType)}. Preview refreshed.`)
     setPreviewVersion((current) => current + 1)
   }
 
@@ -1034,7 +1106,8 @@ export function VisualComposerClient({
     try {
       doc?.querySelectorAll<HTMLElement>('[data-composer-block]').forEach((element) => {
         const index = Number(element.dataset.composerBlock)
-        element.title = 'Click to edit this section in the Visual Composer'
+        const blockTitle = selectedPage?.layout?.[index] ? getBlockTitle(selectedPage.layout[index], index) : `Section ${index + 1}`
+        element.title = `Edit ${blockTitle} in the Visual Composer`
         element.style.cursor = 'pointer'
         element.addEventListener('click', (event) => {
           if (!selectedPage?.layout?.[index]) return
@@ -1055,7 +1128,7 @@ export function VisualComposerClient({
         <div>
           <p className="visual-composer__eyebrow">PlusMIT visual composer</p>
           <h1>Visual Composer</h1>
-          <p>Select a page, edit safe block settings, save, and refresh the live preview.</p>
+          <p>Select a page, click any preview section, tune the block, save, and refresh the live preview.</p>
         </div>
         {selectedPage ? (
           <div className="visual-composer__actions">
@@ -1104,21 +1177,24 @@ export function VisualComposerClient({
                     {formatDate(selectedPage.updatedAt)}
                   </span>
                 </div>
-                <div className="visual-composer__viewportSwitch" aria-label="Preview size">
-                  {previewSizes.map((size) => (
-                    <button
-                      data-active={selectedPreviewSize === size.width}
-                      key={size.width}
-                      onClick={() => setSelectedPreviewSize(size.width)}
-                      type="button"
-                    >
-                      {size.label}
-                    </button>
-                  ))}
+                <div className="visual-composer__toolbarActions">
+                  <span className="visual-composer__modePill">{getPreviewLabel(selectedPreviewSize)} preview</span>
+                  <div className="visual-composer__viewportSwitch" aria-label="Preview size">
+                    {previewSizes.map((size) => (
+                      <button
+                        data-active={selectedPreviewSize === size.width}
+                        key={size.width}
+                        onClick={() => setSelectedPreviewSize(size.width)}
+                        type="button"
+                      >
+                        {size.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="visual-composer__previewWrap">
+              <div className="visual-composer__previewWrap" data-preview-size={getPreviewLabel(selectedPreviewSize).toLowerCase()}>
                 <iframe
                   className="visual-composer__preview"
                   key={`${selectedPage.id}-${selectedPreviewSize}-${previewVersion}`}
@@ -1254,10 +1330,10 @@ export function VisualComposerClient({
                     </section>
 
                     <div className="visual-composer__tabs" role="tablist" aria-label="Inspector sections">
-                      {inspectorTabs.map((tab) => (
+                      {visibleInspectorTabs.map((tab) => (
                         <button
-                          aria-selected={activeInspectorTab === tab.id}
-                          data-active={activeInspectorTab === tab.id}
+                          aria-selected={currentInspectorTab === tab.id}
+                          data-active={currentInspectorTab === tab.id}
                           key={tab.id}
                           onClick={() => setActiveInspectorTab(tab.id)}
                           role="tab"
@@ -1268,11 +1344,13 @@ export function VisualComposerClient({
                       ))}
                     </div>
 
-                    {activeInspectorTab === 'content' ? (
+                    {currentInspectorTab === 'content' ? (
                       <section className="visual-composer__tabPanel" role="tabpanel">
                         <TextField label="Eyebrow" onChange={(value) => updateBlockField('eyebrow', value)} value={editorBlock.eyebrow} />
                         <TextField label="Title" onChange={(value) => updateBlockField('title', value)} value={editorBlock.title} />
-                        <TextField label="Highlight text" onChange={(value) => updateBlockField('highlightText', value)} value={editorBlock.highlightText} />
+                        {blockSupportsHighlight(selectedBlockType) ? (
+                          <TextField label="Highlight text" onChange={(value) => updateBlockField('highlightText', value)} value={editorBlock.highlightText} />
+                        ) : null}
                         <TextAreaField label="Summary" onChange={(value) => updateBlockField('summary', value)} value={editorBlock.summary} />
 
                         {blockSupportsBody(selectedBlockType) ? (
@@ -1331,7 +1409,7 @@ export function VisualComposerClient({
                           />
                         ) : null}
 
-                        {['ctaBanner', 'hero', 'imageText', 'recoveryEmergencyCta', 'splitHero'].includes(selectedBlockType || '') ? (
+                        {showCtaControls ? (
                           <LinkGroupEditor label="Primary CTA" onChange={(value) => updateBlockField('primaryCta', value)} value={editorBlock.primaryCta} />
                         ) : null}
 
@@ -1339,13 +1417,13 @@ export function VisualComposerClient({
                           <LinkGroupEditor label="Secondary CTA" onChange={(value) => updateBlockField('secondaryCta', value)} value={editorBlock.secondaryCta} />
                         ) : null}
 
-                        {['industryCards', 'servicesGrid'].includes(selectedBlockType || '') ? (
+                        {blockSupportsViewAllCta(selectedBlockType) ? (
                           <LinkGroupEditor label="View all CTA" onChange={(value) => updateBlockField('viewAllCta', value)} value={editorBlock.viewAllCta} />
                         ) : null}
                       </section>
                     ) : null}
 
-                    {activeInspectorTab === 'design' ? (
+                    {currentInspectorTab === 'design' ? (
                       <section className="visual-composer__tabPanel" role="tabpanel">
                         <div className="visual-composer__fieldGrid">
                           <SelectField label="Theme" onChange={(value) => updateBlockField('theme', value)} options={selectOptions.theme} value={editorBlock.theme} />
@@ -1382,7 +1460,7 @@ export function VisualComposerClient({
                       </section>
                     ) : null}
 
-                    {activeInspectorTab === 'media' ? (
+                    {currentInspectorTab === 'media' ? (
                       <section className="visual-composer__tabPanel" role="tabpanel">
                         <section className="visual-composer__mediaPanel" aria-label="Media controls">
                           <div className="visual-composer__mediaHeader">
@@ -1528,24 +1606,60 @@ export function VisualComposerClient({
                       </section>
                     ) : null}
 
-                    {activeInspectorTab === 'responsive' ? (
+                    {currentInspectorTab === 'responsive' ? (
                       <section className="visual-composer__tabPanel" role="tabpanel">
                         <p className="visual-composer__blockGuide">Responsive controls affect the selected block without duplicating desktop content.</p>
-                        <div className="visual-composer__fieldGrid">
-                        <SelectField label="Mobile layout" onChange={(value) => updateDesignField('mobileLayout', value)} options={selectOptions.mobileLayout} value={editorBlock.design?.mobileLayout} />
-                        <SelectField label="Mobile media" onChange={(value) => updateDesignField('mobileMedia', value)} options={selectOptions.mobileMedia} value={editorBlock.design?.mobileMedia} />
-                        <SelectField label="Mobile spacing" onChange={(value) => updateDesignField('mobileSpacing', value)} options={selectOptions.mobileSpacing} value={editorBlock.design?.mobileSpacing} />
-                        <SelectField
-                          label="Mobile CTAs"
-                          onChange={(value) => updateDesignField('mobileCtaLayout', value)}
-                          options={selectOptions.mobileCtaLayout}
-                          value={editorBlock.design?.mobileCtaLayout}
-                        />
+                        <div className="visual-composer__responsiveTools">
+                          <div>
+                            <strong>Preview target</strong>
+                            <small>Switch preview widths before saving to check spacing and order.</small>
+                          </div>
+                          <div>
+                            <button onClick={() => setSelectedPreviewSize(820)} type="button">
+                              Tablet
+                            </button>
+                            <button onClick={() => setSelectedPreviewSize(390)} type="button">
+                              Mobile
+                            </button>
+                          </div>
                         </div>
+                        <div className="visual-composer__responsivePresets">
+                          {responsivePresets
+                            .filter((preset) => showResponsiveMedia || preset.patch.mobileMedia !== 'hide')
+                            .map((preset) => (
+                              <button key={preset.label} onClick={() => applyResponsivePreset(preset)} type="button">
+                                <strong>{preset.label}</strong>
+                                <small>{preset.description}</small>
+                              </button>
+                            ))}
+                        </div>
+                        <div className="visual-composer__fieldGrid">
+                          <SelectField label="Mobile layout" onChange={(value) => updateDesignField('mobileLayout', value)} options={selectOptions.mobileLayout} value={editorBlock.design?.mobileLayout} />
+                          {showResponsiveMedia ? (
+                            <SelectField label="Mobile media" onChange={(value) => updateDesignField('mobileMedia', value)} options={selectOptions.mobileMedia} value={editorBlock.design?.mobileMedia} />
+                          ) : null}
+                          <SelectField label="Mobile spacing" onChange={(value) => updateDesignField('mobileSpacing', value)} options={selectOptions.mobileSpacing} value={editorBlock.design?.mobileSpacing} />
+                          {showCtaControls ? (
+                            <SelectField
+                              label="Mobile CTAs"
+                              onChange={(value) => updateDesignField('mobileCtaLayout', value)}
+                              options={selectOptions.mobileCtaLayout}
+                              value={editorBlock.design?.mobileCtaLayout}
+                            />
+                          ) : null}
+                        </div>
+                        {showCardControls ? (
+                          <p className="visual-composer__blockGuide">
+                            Card sections automatically reduce to two columns on tablet and one column on mobile. Use Card density and Card columns in Design for the desktop baseline.
+                          </p>
+                        ) : null}
+                        {!showResponsiveMedia && !showCtaControls ? (
+                          <p className="visual-composer__blockGuide">This block has no media or CTA-specific mobile controls. Use layout and spacing to tune its mobile presentation.</p>
+                        ) : null}
                       </section>
                     ) : null}
 
-                    {activeInspectorTab === 'advanced' ? (
+                    {currentInspectorTab === 'advanced' ? (
                       <section className="visual-composer__tabPanel" role="tabpanel">
                         <TextField label="Section ID" onChange={(value) => updateBlockField('sectionId', value)} value={editorBlock.sectionId} />
                         <p className="visual-composer__blockGuide">
@@ -1554,7 +1668,7 @@ export function VisualComposerClient({
                       </section>
                     ) : null}
 
-                    {message ? <p className={`visual-composer__message visual-composer__message--${saveState}`}>{message}</p> : null}
+                    {message ? <p aria-live="polite" className={`visual-composer__message visual-composer__message--${saveState}`}>{message}</p> : null}
                   </div>
                 ) : (
                   <p className="visual-composer__message">Select a block from the page structure.</p>
