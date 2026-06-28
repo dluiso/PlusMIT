@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import type { Where } from 'payload'
 import { ContactForm } from './ContactForm'
 import { getMediaInfo, type MediaValue } from '@/lib/media'
 import { getPayloadClient } from '@/lib/payload'
@@ -57,6 +58,7 @@ type AnyBlock = {
   badges?: { label?: string; value?: string }[]
   blockType?: string
   body?: string
+  category?: string
   contactItems?: ContactItem[]
   design?: DesignControls
   eyebrow?: string
@@ -390,10 +392,32 @@ function Timeline({ steps }: { steps?: CardItem[] }) {
   )
 }
 
-async function getCollectionCards(blockType?: string, limit = 8): Promise<CardItem[]> {
+function buildCategoryWhere(category?: string): Where {
+  const trimmed = category?.trim()
+  return trimmed
+    ? { and: [{ status: { equals: 'published' } }, { category: { equals: trimmed } }] }
+    : { status: { equals: 'published' } }
+}
+
+function FaqList({ items }: { items?: CardItem[] }) {
+  if (!items?.length) return null
+
+  return (
+    <div className="faq-list">
+      {items.map((item, index) => (
+        <details className="surface faq-item" key={`${item.title || item.text}-${index}`}>
+          <summary>{item.title || item.text}</summary>
+          {item.summary ? <p>{item.summary}</p> : null}
+        </details>
+      ))}
+    </div>
+  )
+}
+
+async function getCollectionCards(block: AnyBlock, limit = 8): Promise<CardItem[]> {
   const payload = await getPayloadClient()
 
-  if (blockType === 'servicesGrid') {
+  if (block.blockType === 'servicesGrid') {
     const result = await payload.find({
       collection: 'services',
       where: { status: { equals: 'published' } },
@@ -408,7 +432,7 @@ async function getCollectionCards(blockType?: string, limit = 8): Promise<CardIt
     }))
   }
 
-  if (blockType === 'industryCards') {
+  if (block.blockType === 'industryCards') {
     const result = await payload.find({
       collection: 'industries',
       where: { status: { equals: 'published' } },
@@ -423,7 +447,7 @@ async function getCollectionCards(blockType?: string, limit = 8): Promise<CardIt
     }))
   }
 
-  if (blockType === 'testimonials') {
+  if (block.blockType === 'testimonials') {
     const result = await payload.find({
       collection: 'testimonials',
       where: {
@@ -439,10 +463,23 @@ async function getCollectionCards(blockType?: string, limit = 8): Promise<CardIt
     }))
   }
 
-  if (blockType === 'resourceList') {
+  if (block.blockType === 'faqAccordion') {
+    const result = await payload.find({
+      collection: 'faqs',
+      where: buildCategoryWhere(block.category),
+      sort: 'displayOrder',
+      limit,
+    })
+    return result.docs.map((faq) => ({
+      title: faq.question,
+      summary: faq.answer,
+    }))
+  }
+
+  if (block.blockType === 'resourceList') {
     const result = await payload.find({
       collection: 'posts',
-      where: { status: { equals: 'published' } },
+      where: buildCategoryWhere(block.category),
       sort: '-publishedDate',
       limit,
     })
@@ -460,7 +497,7 @@ async function getCollectionCards(blockType?: string, limit = 8): Promise<CardIt
 async function resolveItems(block: AnyBlock) {
   const manual = block.items || block.steps || block.rows || block.options
   if (manual?.length) return manual
-  return getCollectionCards(block.blockType, asLimit(block.itemLimit, block.blockType === 'industryCards' ? 6 : 8))
+  return getCollectionCards(block, asLimit(block.itemLimit, block.blockType === 'industryCards' ? 6 : 8))
 }
 
 function SectionBackground({ block }: { block: AnyBlock }) {
@@ -697,6 +734,25 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
 
           const items = await resolveItems(block)
           const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+
+          if (block.blockType === 'faqAccordion') {
+            return (
+              <section
+                className={cx(sectionClass(block), composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                id={block.sectionId || undefined}
+                key={key}
+                style={sectionStyle(block)}
+              >
+                <SectionBackground block={block} />
+                <div className={innerClass(block)}>
+                  <SectionHeader block={block} />
+                  <FaqList items={items} />
+                </div>
+              </section>
+            )
+          }
+
           return (
             <section
               className={cx(sectionClass(block), composerProps.className)}

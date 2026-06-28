@@ -198,6 +198,45 @@ h4 {
   text-transform: uppercase;
 }
 
+.faq-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.faq-item {
+  padding: 0;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  color: var(--color-foreground);
+  font-weight: 800;
+  list-style: none;
+  padding: 18px 20px;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: '+';
+  float: right;
+  color: var(--color-primary);
+}
+
+.faq-item[open] summary::after {
+  content: '-';
+}
+
+.faq-item p {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  line-height: 1.75;
+  padding: 0 20px 20px;
+}
+
 .section-block--compact {
   padding-block: 48px;
 }

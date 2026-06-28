@@ -9,22 +9,59 @@ type MediaFieldName = 'backgroundImage' | 'image'
 type MediaPanelMode = 'closed' | 'library' | 'upload'
 type StructureState = 'error' | 'idle' | 'saving' | 'success'
 
+type ComposerCardItem = {
+  icon?: string | null
+  summary?: string | null
+  title?: string | null
+  url?: string | null
+}
+
+type ComposerStatItem = {
+  label?: string | null
+  value?: string | null
+}
+
+type ComposerContactItem = {
+  icon?: string | null
+  label?: string | null
+  value?: string | null
+}
+
+type ComposerLink = {
+  label?: string | null
+  url?: string | null
+}
+
 export type PageBlock = {
   backgroundImage?: MediaReference
+  badges?: ComposerStatItem[]
   blockType?: string
+  body?: string | null
+  category?: string | null
+  contactItems?: ComposerContactItem[]
   eyebrow?: string | null
   hidden?: boolean | null
   highlightText?: string | null
   image?: MediaReference
+  itemLimit?: number | null
+  items?: ComposerCardItem[]
   layoutVariant?: string | null
   maxWidth?: string | null
   mediaPosition?: string | null
+  options?: ComposerCardItem[]
+  primaryCta?: ComposerLink | null
+  rows?: ComposerCardItem[]
   sectionId?: string | null
+  secondaryCta?: ComposerLink | null
+  smartFicheUrl?: string | null
   spacing?: string | null
+  stats?: ComposerStatItem[]
+  steps?: ComposerCardItem[]
   summary?: string | null
   textAlign?: string | null
   theme?: string | null
   title?: string | null
+  viewAllCta?: ComposerLink | null
   design?: {
     cardColumns?: string | null
     cardDensity?: string | null
@@ -124,9 +161,13 @@ const previewSizes = [
 
 const insertBlockOptions = [
   { label: 'CTA Banner', value: 'ctaBanner' },
+  { label: 'FAQ', value: 'faqAccordion' },
   { label: 'Hero', value: 'hero' },
   { label: 'Image + Text', value: 'imageText' },
   { label: 'Industries', value: 'industryCards' },
+  { label: 'Pricing / Plans', value: 'pricingOptions' },
+  { label: 'Process Timeline', value: 'processTimeline' },
+  { label: 'Resources', value: 'resourceList' },
   { label: 'Rich Text', value: 'richText' },
   { label: 'Services Grid', value: 'servicesGrid' },
   { label: 'SmartFiche', value: 'smartfiche' },
@@ -280,6 +321,159 @@ function TextAreaField({
       <span>{label}</span>
       <textarea onChange={(event) => onChange(event.target.value)} rows={4} value={value || ''} />
     </label>
+  )
+}
+
+function NumberField({
+  label,
+  max = 24,
+  min = 1,
+  onChange,
+  value,
+}: {
+  label: string
+  max?: number
+  min?: number
+  onChange: (value: number) => void
+  value?: number | null
+}) {
+  return (
+    <label className="visual-composer__field">
+      <span>{label}</span>
+      <input
+        max={max}
+        min={min}
+        onChange={(event) => onChange(Number(event.target.value))}
+        type="number"
+        value={value ?? ''}
+      />
+    </label>
+  )
+}
+
+function LinkGroupEditor({
+  label,
+  onChange,
+  value,
+}: {
+  label: string
+  onChange: (value: ComposerLink) => void
+  value?: ComposerLink | null
+}) {
+  const link = value || {}
+
+  return (
+    <div className="visual-composer__miniGroup">
+      <span>{label}</span>
+      <div className="visual-composer__fieldGrid">
+        <TextField label="Label" onChange={(nextValue) => onChange({ ...link, label: nextValue })} value={link.label} />
+        <TextField label="URL" onChange={(nextValue) => onChange({ ...link, url: nextValue })} value={link.url} />
+      </div>
+    </div>
+  )
+}
+
+function CardItemsEditor({
+  addLabel = 'Add item',
+  emptyLabel = 'No manual items yet. The block may still load content from its collection.',
+  fieldLabel,
+  items,
+  onChange,
+}: {
+  addLabel?: string
+  emptyLabel?: string
+  fieldLabel: string
+  items?: ComposerCardItem[]
+  onChange: (items: ComposerCardItem[]) => void
+}) {
+  const currentItems = items || []
+
+  function updateItem(index: number, patch: Partial<ComposerCardItem>) {
+    onChange(currentItems.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)))
+  }
+
+  function moveItem(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= currentItems.length) return
+
+    const nextItems = [...currentItems]
+    const [item] = nextItems.splice(index, 1)
+    nextItems.splice(nextIndex, 0, item)
+    onChange(nextItems)
+  }
+
+  return (
+    <div className="visual-composer__arrayEditor">
+      <div className="visual-composer__arrayHeader">
+        <span>{fieldLabel}</span>
+        <button onClick={() => onChange([...currentItems, { icon: '+', summary: '', title: 'New item', url: '' }])} type="button">
+          {addLabel}
+        </button>
+      </div>
+      {!currentItems.length ? <p>{emptyLabel}</p> : null}
+      {currentItems.map((item, index) => (
+        <div className="visual-composer__arrayItem" key={`${item.title || 'item'}-${index}`}>
+          <div className="visual-composer__arrayItemHeader">
+            <strong>{item.title || `Item ${index + 1}`}</strong>
+            <div>
+              <button disabled={index === 0} onClick={() => moveItem(index, -1)} type="button">
+                Up
+              </button>
+              <button disabled={index === currentItems.length - 1} onClick={() => moveItem(index, 1)} type="button">
+                Down
+              </button>
+              <button onClick={() => onChange(currentItems.filter((_, itemIndex) => itemIndex !== index))} type="button">
+                Remove
+              </button>
+            </div>
+          </div>
+          <div className="visual-composer__fieldGrid">
+            <TextField label="Title" onChange={(value) => updateItem(index, { title: value })} value={item.title} />
+            <TextField label="Icon" onChange={(value) => updateItem(index, { icon: value })} value={item.icon} />
+          </div>
+          <TextAreaField label="Summary" onChange={(value) => updateItem(index, { summary: value })} value={item.summary} />
+          <TextField label="Optional URL" onChange={(value) => updateItem(index, { url: value })} value={item.url} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StatItemsEditor({
+  fieldLabel,
+  items,
+  onChange,
+}: {
+  fieldLabel: string
+  items?: ComposerStatItem[]
+  onChange: (items: ComposerStatItem[]) => void
+}) {
+  const currentItems = items || []
+
+  function updateItem(index: number, patch: Partial<ComposerStatItem>) {
+    onChange(currentItems.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)))
+  }
+
+  return (
+    <div className="visual-composer__arrayEditor">
+      <div className="visual-composer__arrayHeader">
+        <span>{fieldLabel}</span>
+        <button onClick={() => onChange([...currentItems, { label: 'Metric label', value: '99%' }])} type="button">
+          Add
+        </button>
+      </div>
+      {currentItems.map((item, index) => (
+        <div className="visual-composer__arrayItem" key={`${item.label || 'stat'}-${index}`}>
+          <div className="visual-composer__fieldGrid">
+            <TextField label="Value" onChange={(value) => updateItem(index, { value })} value={item.value} />
+            <TextField label="Label" onChange={(value) => updateItem(index, { label: value })} value={item.label} />
+          </div>
+          <button onClick={() => onChange(currentItems.filter((_, itemIndex) => itemIndex !== index))} type="button">
+            Remove
+          </button>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -531,6 +725,33 @@ function getBlockPresets(blockType?: string) {
   return base
 }
 
+function getCardArrayConfig(blockType?: string): { emptyLabel?: string; field: 'items' | 'options' | 'rows' | 'steps'; label: string } | null {
+  if (blockType === 'processTimeline') return { field: 'steps', label: 'Timeline steps' }
+  if (blockType === 'pricingOptions') return { field: 'options', label: 'Pricing / plan cards' }
+  if (blockType === 'comparisonTable') return { field: 'rows', label: 'Comparison rows' }
+  if (['featureCards', 'mobileAppPreview', 'servicesGrid', 'industryCards', 'testimonials', 'trustBar'].includes(blockType || '')) {
+    return {
+      emptyLabel: 'No manual cards. This block can still use published CMS collection content when available.',
+      field: 'items',
+      label: blockType === 'testimonials' ? 'Manual testimonials' : 'Manual cards',
+    }
+  }
+
+  return null
+}
+
+function blockSupportsItemLimit(blockType?: string) {
+  return ['industryCards', 'servicesGrid', 'testimonials'].includes(blockType || '')
+}
+
+function blockSupportsCategory(blockType?: string) {
+  return blockType === 'faqAccordion' || blockType === 'resourceList'
+}
+
+function blockSupportsBody(blockType?: string) {
+  return blockType === 'richText'
+}
+
 export function VisualComposerClient({
   initialPageId,
   initialViewport,
@@ -564,6 +785,7 @@ export function VisualComposerClient({
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
   const selectedBlockType = selectedBlock?.blockType
   const selectedBlockPresets = getBlockPresets(selectedBlockType)
+  const selectedCardArrayConfig = getCardArrayConfig(selectedBlockType)
   const showCardControls = blockSupportsCards(selectedBlockType)
   const showPrimaryImage = blockSupportsPrimaryImage(selectedBlockType)
   const effectiveMediaField: MediaFieldName = showPrimaryImage ? activeMediaField : 'backgroundImage'
@@ -646,7 +868,7 @@ export function VisualComposerClient({
     setMessage('Unsaved changes. Save to refresh the preview.')
   }
 
-  function updateBlockField(field: keyof PageBlock, value: MediaReference | string) {
+  function updateBlockField(field: keyof PageBlock, value: MediaReference | ComposerCardItem[] | ComposerContactItem[] | ComposerLink | ComposerStatItem[] | number | string | null) {
     setEditorBlock((current) => ({ ...(current || {}), [field]: value }))
     markDirty()
   }
@@ -1117,6 +1339,79 @@ export function VisualComposerClient({
                     <TextField label="Title" onChange={(value) => updateBlockField('title', value)} value={editorBlock.title} />
                     <TextField label="Highlight text" onChange={(value) => updateBlockField('highlightText', value)} value={editorBlock.highlightText} />
                     <TextAreaField label="Summary" onChange={(value) => updateBlockField('summary', value)} value={editorBlock.summary} />
+
+                    <details className="visual-composer__editorGroup" open>
+                      <summary>Block content</summary>
+                      <div>
+                        {blockSupportsBody(selectedBlockType) ? (
+                          <TextAreaField label="Body" onChange={(value) => updateBlockField('body', value)} value={editorBlock.body} />
+                        ) : null}
+
+                        {blockSupportsCategory(selectedBlockType) ? (
+                          <TextField
+                            label={selectedBlockType === 'faqAccordion' ? 'FAQ category' : 'Resource category'}
+                            onChange={(value) => updateBlockField('category', value)}
+                            value={editorBlock.category}
+                          />
+                        ) : null}
+
+                        {blockSupportsItemLimit(selectedBlockType) ? (
+                          <NumberField label="Item limit" max={24} min={1} onChange={(value) => updateBlockField('itemLimit', value)} value={editorBlock.itemLimit} />
+                        ) : null}
+
+                        {selectedBlockType === 'smartfiche' ? (
+                          <TextField label="SmartFiche URL" onChange={(value) => updateBlockField('smartFicheUrl', value)} value={editorBlock.smartFicheUrl} />
+                        ) : null}
+
+                        {selectedBlockType === 'hero' || selectedBlockType === 'stats' ? (
+                          <StatItemsEditor fieldLabel={selectedBlockType === 'hero' ? 'Hero stats' : 'Metrics'} items={editorBlock.stats} onChange={(items) => updateBlockField('stats', items)} />
+                        ) : null}
+
+                        {selectedBlockType === 'hero' ? (
+                          <StatItemsEditor fieldLabel="Hero badges" items={editorBlock.badges} onChange={(items) => updateBlockField('badges', items)} />
+                        ) : null}
+
+                        {selectedCardArrayConfig ? (
+                          <CardItemsEditor
+                            emptyLabel={selectedCardArrayConfig.emptyLabel}
+                            fieldLabel={selectedCardArrayConfig.label}
+                            items={editorBlock[selectedCardArrayConfig.field]}
+                            onChange={(items) => updateBlockField(selectedCardArrayConfig.field, items)}
+                          />
+                        ) : null}
+
+                        {selectedBlockType === 'contactForm' ? (
+                          <CardItemsEditor
+                            addLabel="Add contact item"
+                            emptyLabel="No contact details configured for this section."
+                            fieldLabel="Contact details"
+                            items={editorBlock.contactItems?.map((item) => ({
+                              icon: item.icon,
+                              summary: item.value,
+                              title: item.label,
+                            }))}
+                            onChange={(items) =>
+                              updateBlockField(
+                                'contactItems',
+                                items.map((item) => ({ icon: item.icon, label: item.title, value: item.summary })),
+                              )
+                            }
+                          />
+                        ) : null}
+
+                        {['ctaBanner', 'hero', 'imageText', 'recoveryEmergencyCta', 'splitHero'].includes(selectedBlockType || '') ? (
+                          <LinkGroupEditor label="Primary CTA" onChange={(value) => updateBlockField('primaryCta', value)} value={editorBlock.primaryCta} />
+                        ) : null}
+
+                        {['hero', 'imageText', 'splitHero'].includes(selectedBlockType || '') ? (
+                          <LinkGroupEditor label="Secondary CTA" onChange={(value) => updateBlockField('secondaryCta', value)} value={editorBlock.secondaryCta} />
+                        ) : null}
+
+                        {['industryCards', 'servicesGrid'].includes(selectedBlockType || '') ? (
+                          <LinkGroupEditor label="View all CTA" onChange={(value) => updateBlockField('viewAllCta', value)} value={editorBlock.viewAllCta} />
+                        ) : null}
+                      </div>
+                    </details>
 
                     <div className="visual-composer__fieldGrid">
                       <SelectField label="Theme" onChange={(value) => updateBlockField('theme', value)} options={selectOptions.theme} value={editorBlock.theme} />

@@ -32,6 +32,14 @@ const blockFactories: Record<string, () => PageBlock> = {
     theme: 'white',
     title: 'New call to action',
   }),
+  faqAccordion: () => ({
+    blockType: 'faqAccordion',
+    category: '',
+    spacing: 'standard',
+    textAlign: 'left',
+    theme: 'white',
+    title: 'Frequently asked questions',
+  }),
   hero: () => ({
     blockType: 'hero',
     layoutVariant: 'dashboard',
@@ -59,6 +67,35 @@ const blockFactories: Record<string, () => PageBlock> = {
     spacing: 'standard',
     theme: 'soft',
     title: 'New industries section',
+  }),
+  pricingOptions: () => ({
+    blockType: 'pricingOptions',
+    options: [
+      { title: 'Assessment', summary: 'A focused review with clear next steps.', icon: '+' },
+      { title: 'Managed support', summary: 'Recurring operational support for active environments.', icon: '+' },
+      { title: 'Recovery help', summary: 'Practical support for urgent issues and compromised systems.', icon: '+' },
+    ],
+    spacing: 'standard',
+    theme: 'white',
+    title: 'Engagement options',
+  }),
+  processTimeline: () => ({
+    blockType: 'processTimeline',
+    spacing: 'standard',
+    steps: [
+      { title: 'Assess', summary: 'Review the current environment and priorities.', icon: '1' },
+      { title: 'Plan', summary: 'Define the recommended path and implementation order.', icon: '2' },
+      { title: 'Execute', summary: 'Deliver the work with clear checkpoints.', icon: '3' },
+    ],
+    theme: 'soft',
+    title: 'How we work',
+  }),
+  resourceList: () => ({
+    blockType: 'resourceList',
+    category: '',
+    spacing: 'standard',
+    theme: 'white',
+    title: 'Latest resources',
   }),
   richText: () => ({
     blockType: 'richText',

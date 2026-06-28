@@ -16,13 +16,17 @@ type PageDocument = {
 }
 
 const allowedTopLevelFields = new Set([
+  'body',
+  'category',
   'eyebrow',
   'highlightText',
   'hidden',
+  'itemLimit',
   'layoutVariant',
   'maxWidth',
   'mediaPosition',
   'sectionId',
+  'smartFicheUrl',
   'spacing',
   'summary',
   'textAlign',
@@ -31,6 +35,10 @@ const allowedTopLevelFields = new Set([
 ])
 
 const allowedRelationshipFields = new Set(['backgroundImage', 'image'])
+const allowedGroupFields = new Set(['primaryCta', 'secondaryCta', 'viewAllCta'])
+const allowedCardArrayFields = new Set(['items', 'options', 'rows', 'steps'])
+const allowedStatArrayFields = new Set(['badges', 'stats'])
+const allowedContactArrayFields = new Set(['contactItems'])
 
 const allowedDesignFields = new Set([
   'cardColumns',
@@ -79,6 +87,63 @@ function sanitizeBooleanValue(value: unknown) {
   return typeof value === 'boolean' ? value : undefined
 }
 
+function sanitizeNumberValue(value: unknown, max = 24) {
+  const numberValue = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numberValue)) return undefined
+  return Math.max(1, Math.min(Math.round(numberValue), max))
+}
+
+function sanitizeLinkGroup(value: unknown) {
+  if (!isPlainObject(value)) return undefined
+
+  return {
+    label: sanitizeStringValue(value.label),
+    url: sanitizeStringValue(value.url),
+  }
+}
+
+function sanitizeCardItems(value: unknown) {
+  if (!Array.isArray(value)) return undefined
+
+  return value.slice(0, 24).map((item) => {
+    if (!isPlainObject(item)) return {}
+
+    return {
+      icon: sanitizeStringValue(item.icon),
+      summary: sanitizeStringValue(item.summary),
+      title: sanitizeStringValue(item.title),
+      url: sanitizeStringValue(item.url),
+    }
+  })
+}
+
+function sanitizeStatItems(value: unknown) {
+  if (!Array.isArray(value)) return undefined
+
+  return value.slice(0, 12).map((item) => {
+    if (!isPlainObject(item)) return {}
+
+    return {
+      label: sanitizeStringValue(item.label),
+      value: sanitizeStringValue(item.value),
+    }
+  })
+}
+
+function sanitizeContactItems(value: unknown) {
+  if (!Array.isArray(value)) return undefined
+
+  return value.slice(0, 12).map((item) => {
+    if (!isPlainObject(item)) return {}
+
+    return {
+      icon: sanitizeStringValue(item.icon),
+      label: sanitizeStringValue(item.label),
+      value: sanitizeStringValue(item.value),
+    }
+  })
+}
+
 function sanitizeBlockPatch(value: unknown) {
   if (!isPlainObject(value)) return null
 
@@ -86,11 +151,33 @@ function sanitizeBlockPatch(value: unknown) {
 
   for (const [key, fieldValue] of Object.entries(value)) {
     if (allowedTopLevelFields.has(key)) {
-      patch[key] = key === 'hidden' ? sanitizeBooleanValue(fieldValue) : sanitizeStringValue(fieldValue)
+      if (key === 'hidden') {
+        patch[key] = sanitizeBooleanValue(fieldValue)
+      } else if (key === 'itemLimit') {
+        patch[key] = sanitizeNumberValue(fieldValue)
+      } else {
+        patch[key] = sanitizeStringValue(fieldValue)
+      }
     }
 
     if (allowedRelationshipFields.has(key)) {
       patch[key] = sanitizeRelationshipValue(fieldValue)
+    }
+
+    if (allowedGroupFields.has(key)) {
+      patch[key] = sanitizeLinkGroup(fieldValue)
+    }
+
+    if (allowedCardArrayFields.has(key)) {
+      patch[key] = sanitizeCardItems(fieldValue)
+    }
+
+    if (allowedStatArrayFields.has(key)) {
+      patch[key] = sanitizeStatItems(fieldValue)
+    }
+
+    if (allowedContactArrayFields.has(key)) {
+      patch[key] = sanitizeContactItems(fieldValue)
     }
   }
 
