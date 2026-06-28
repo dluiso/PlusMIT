@@ -1147,22 +1147,27 @@ export function VisualComposerClient({
           <section className="visual-composer__pagePicker" aria-label="Pages">
             <div>
               <h2>Pages</h2>
-              <p>Select a page to preview.</p>
+              <p>Select a page to preview and edit.</p>
             </div>
-            <div className="visual-composer__pageRail">
-              {pages.map((page) => (
-                <button
-                  className="visual-composer__pageItem"
-                  data-active={page.id === selectedPage.id}
-                  key={page.id}
-                  onClick={() => selectPage(page)}
-                  type="button"
-                >
-                  <strong>{page.title || page.slug}</strong>
-                  <span>{publicPathFromSlug(page.slug)}</span>
-                  <small>{page.status || 'draft'}</small>
-                </button>
-              ))}
+            <label className="visual-composer__pageSelect">
+              <span>Current page</span>
+              <select
+                onChange={(event) => {
+                  const page = pages.find((item) => String(item.id) === event.target.value)
+                  if (page) selectPage(page)
+                }}
+                value={String(selectedPage.id)}
+              >
+                {pages.map((page) => (
+                  <option key={page.id} value={String(page.id)}>
+                    {page.title || page.slug} - {publicPathFromSlug(page.slug)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="visual-composer__pageMeta">
+              <strong>{selectedPage.status || 'draft'}</strong>
+              <span>{publicPathFromSlug(selectedPage.slug)}</span>
             </div>
           </section>
 
