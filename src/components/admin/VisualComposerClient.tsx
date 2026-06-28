@@ -24,6 +24,10 @@ type ComposerStatItem = {
   value?: string | null
 }
 
+type ComposerTechnologyItem = {
+  text?: string | null
+}
+
 type ComposerContactItem = {
   icon?: string | null
   label?: string | null
@@ -61,6 +65,7 @@ export type PageBlock = {
   stats?: ComposerStatItem[]
   steps?: ComposerCardItem[]
   summary?: string | null
+  technologies?: ComposerTechnologyItem[]
   textAlign?: string | null
   theme?: string | null
   title?: string | null
@@ -543,6 +548,14 @@ function LinkGroupEditor({
   )
 }
 
+function getCardItemIssues(item: ComposerCardItem) {
+  return [
+    item.title?.trim() ? null : 'Missing title',
+    item.summary?.trim() ? null : 'Missing summary',
+    item.url && !/^(\/|#|https?:\/\/|mailto:|tel:)/i.test(item.url) ? 'URL should start with /, #, http(s), mailto, or tel' : null,
+  ].filter((issue): issue is string => Boolean(issue))
+}
+
 function CardItemsEditor({
   addLabel = 'Add item',
   emptyLabel = 'No manual items yet. The block may still load content from its collection.',
@@ -591,11 +604,12 @@ function CardItemsEditor({
       </div>
       {!currentItems.length ? <p>{emptyLabel}</p> : null}
       {currentItems.map((item, index) => (
-        <details className="visual-composer__arrayItem" key={`${item.title || 'item'}-${index}`} open={index === 0}>
+        <details className="visual-composer__arrayItem" data-issues={getCardItemIssues(item).length > 0} key={`${item.title || 'item'}-${index}`} open={index === 0}>
           <summary className="visual-composer__arrayItemHeader">
             <strong>
               <span>{index + 1}</span>
               {item.title || `Item ${index + 1}`}
+              {getCardItemIssues(item).length ? <em>{getCardItemIssues(item).length} checks</em> : <em data-ready="true">Ready</em>}
             </strong>
             <div>
               <button disabled={index === 0} onClick={() => moveItem(index, -1)} type="button">
@@ -616,9 +630,68 @@ function CardItemsEditor({
             <TextField label="Title" onChange={(value) => updateItem(index, { title: value })} value={item.title} />
             <TextField label="Icon" onChange={(value) => updateItem(index, { icon: value })} value={item.icon} />
           </div>
+          {getCardItemIssues(item).length ? (
+            <div className="visual-composer__arrayChecks">
+              {getCardItemIssues(item).map((issue) => (
+                <span key={issue}>{issue}</span>
+              ))}
+            </div>
+          ) : null}
           <TextAreaField label="Summary" onChange={(value) => updateItem(index, { summary: value })} value={item.summary} />
           <TextField label="Optional URL" onChange={(value) => updateItem(index, { url: value })} value={item.url} />
         </details>
+      ))}
+    </div>
+  )
+}
+
+function TechnologyItemsEditor({
+  items,
+  onChange,
+}: {
+  items?: ComposerTechnologyItem[]
+  onChange: (items: ComposerTechnologyItem[]) => void
+}) {
+  const currentItems = items || []
+
+  function updateItem(index: number, value: string) {
+    onChange(currentItems.map((item, itemIndex) => (itemIndex === index ? { ...item, text: value } : item)))
+  }
+
+  function moveItem(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= currentItems.length) return
+
+    const nextItems = [...currentItems]
+    const [item] = nextItems.splice(index, 1)
+    nextItems.splice(nextIndex, 0, item)
+    onChange(nextItems)
+  }
+
+  return (
+    <div className="visual-composer__arrayEditor">
+      <div className="visual-composer__arrayHeader">
+        <span>Technologies</span>
+        <button onClick={() => onChange([...currentItems, { text: 'New technology' }])} type="button">
+          Add technology
+        </button>
+      </div>
+      {!currentItems.length ? <p>Add technologies to show stack badges in this section.</p> : null}
+      {currentItems.map((item, index) => (
+        <div className="visual-composer__arrayRow" key={`${item.text || 'technology'}-${index}`}>
+          <TextField label={`Technology ${index + 1}`} onChange={(value) => updateItem(index, value)} value={item.text} />
+          <div>
+            <button disabled={index === 0} onClick={() => moveItem(index, -1)} type="button">
+              Up
+            </button>
+            <button disabled={index === currentItems.length - 1} onClick={() => moveItem(index, 1)} type="button">
+              Down
+            </button>
+            <button onClick={() => onChange(currentItems.filter((_, itemIndex) => itemIndex !== index))} type="button">
+              Remove
+            </button>
+          </div>
+        </div>
       ))}
     </div>
   )
@@ -1229,6 +1302,73 @@ function blockSupportsBody(blockType?: string) {
   return blockType === 'richText'
 }
 
+function getCollectionSourceInfo(blockType?: string) {
+  const sources: Record<string, { createHref: string; description: string; href: string; label: string }> = {
+    faqAccordion: {
+      createHref: adminPath('/collections/faqs/create'),
+      description: 'This block displays published FAQ entries filtered by category.',
+      href: adminPath('/collections/faqs'),
+      label: 'FAQs',
+    },
+    industryCards: {
+      createHref: adminPath('/collections/industries/create'),
+      description: 'If no manual cards are set, this block displays published industries.',
+      href: adminPath('/collections/industries'),
+      label: 'Industries',
+    },
+    resourceList: {
+      createHref: adminPath('/collections/posts/create'),
+      description: 'This block displays published resources filtered by category.',
+      href: adminPath('/collections/posts'),
+      label: 'Blog / Resources',
+    },
+    servicesGrid: {
+      createHref: adminPath('/collections/services/create'),
+      description: 'If no manual cards are set, this block displays published services.',
+      href: adminPath('/collections/services'),
+      label: 'Services',
+    },
+    testimonials: {
+      createHref: adminPath('/collections/testimonials/create'),
+      description: 'If no manual testimonials are set, this block displays published reviews with permission confirmed.',
+      href: adminPath('/collections/testimonials'),
+      label: 'Testimonials',
+    },
+  }
+
+  return blockType ? sources[blockType] : null
+}
+
+function CollectionSourcePanel({
+  block,
+  blockType,
+}: {
+  block: PageBlock
+  blockType?: string
+}) {
+  const source = getCollectionSourceInfo(blockType)
+  if (!source) return null
+
+  const manualCount = (block.items || []).length
+  const category = block.category?.trim()
+
+  return (
+    <div className="visual-composer__sourcePanel">
+      <div>
+        <span>Collection source</span>
+        <strong>{source.label}</strong>
+        <small>{source.description}</small>
+        {category ? <small>Filter: {category}</small> : null}
+        {manualCount ? <small>{manualCount} manual items override collection content for this block.</small> : null}
+      </div>
+      <div>
+        <Link href={source.href}>Open collection</Link>
+        <Link href={source.createHref}>Create item</Link>
+      </div>
+    </div>
+  )
+}
+
 export function VisualComposerClient({
   initialPageId,
   initialViewport,
@@ -1436,7 +1576,10 @@ export function VisualComposerClient({
     setMessage('Unsaved changes. Save to refresh the preview.')
   }
 
-  function updateBlockField(field: keyof PageBlock, value: MediaReference | ComposerCardItem[] | ComposerContactItem[] | ComposerLink | ComposerStatItem[] | number | string | null) {
+  function updateBlockField(
+    field: keyof PageBlock,
+    value: MediaReference | ComposerCardItem[] | ComposerContactItem[] | ComposerLink | ComposerStatItem[] | ComposerTechnologyItem[] | number | string | null,
+  ) {
     setEditorBlock((current) => ({ ...(current || {}), [field]: value }))
     markDirty()
   }
@@ -2097,6 +2240,8 @@ export function VisualComposerClient({
                           />
                         ) : null}
 
+                        <CollectionSourcePanel block={editorBlock} blockType={selectedBlockType} />
+
                         {blockSupportsItemLimit(selectedBlockType) ? (
                           <NumberField label="Item limit" max={24} min={1} onChange={(value) => updateBlockField('itemLimit', value)} value={editorBlock.itemLimit} />
                         ) : null}
@@ -2111,6 +2256,10 @@ export function VisualComposerClient({
 
                         {selectedBlockType === 'hero' ? (
                           <StatItemsEditor fieldLabel="Hero badges" items={editorBlock.badges} onChange={(items) => updateBlockField('badges', items)} />
+                        ) : null}
+
+                        {selectedBlockType === 'technologyStack' ? (
+                          <TechnologyItemsEditor items={editorBlock.technologies} onChange={(items) => updateBlockField('technologies', items)} />
                         ) : null}
 
                         {selectedCardArrayConfig ? (
