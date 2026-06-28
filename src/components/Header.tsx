@@ -40,9 +40,9 @@ export function Header({ companyName, ctaLabel, ctaUrl, hideCompanyName = false,
               +
             </span>
           )}
-          {showCompanyName ? <span className="text-lg font-black">{companyName}</span> : null}
+          {showCompanyName ? <span className="site-header__name text-lg font-black">{companyName}</span> : null}
         </Link>
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-[var(--color-muted)] md:flex" aria-label="Main navigation">
+        <nav className="site-header__nav hidden items-center gap-8 text-sm font-semibold text-[var(--color-muted)] md:flex" aria-label="Main navigation">
           {visibleItems.map((item) => (
             <a className="transition hover:text-[var(--color-primary)]" key={`${item.label}-${item.url}`} href={item.url || '#'}>
               {item.label}
