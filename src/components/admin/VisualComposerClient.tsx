@@ -6,6 +6,7 @@ import { adminPath } from '@/lib/admin-route'
 
 type MediaReference = number | string | null | undefined
 type MediaFieldName = 'backgroundImage' | 'image'
+type MediaPanelMode = 'closed' | 'library' | 'upload'
 
 export type PageBlock = {
   backgroundImage?: MediaReference
@@ -310,6 +311,7 @@ function MediaLibrary({
   mediaOptions,
   mediaSearch,
   onChoose,
+  onClose,
   onSearch,
   selectedValue,
 }: {
@@ -317,6 +319,7 @@ function MediaLibrary({
   mediaOptions: MediaOption[]
   mediaSearch: string
   onChoose: (value: number | string | null) => void
+  onClose: () => void
   onSearch: (value: string) => void
   selectedValue?: MediaReference
 }) {
@@ -336,9 +339,14 @@ function MediaLibrary({
           <strong>{activeField === 'image' ? 'Choose main image' : 'Choose background / hero image'}</strong>
           <small>Select an asset below. Save the block when the preview looks right.</small>
         </div>
-        <button onClick={() => onChoose(null)} type="button">
-          Clear
-        </button>
+        <div>
+          <button onClick={() => onChoose(null)} type="button">
+            Clear
+          </button>
+          <button onClick={onClose} type="button">
+            Close
+          </button>
+        </div>
       </div>
       <input
         aria-label="Search media"
@@ -521,6 +529,7 @@ export function VisualComposerClient({
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState('')
   const [activeMediaField, setActiveMediaField] = useState<MediaFieldName>('backgroundImage')
+  const [mediaPanelMode, setMediaPanelMode] = useState<MediaPanelMode>('closed')
   const [mediaSearch, setMediaSearch] = useState('')
   const [mediaMessage, setMediaMessage] = useState('')
   const [mediaUploadState, setMediaUploadState] = useState<UploadState>('idle')
@@ -577,6 +586,14 @@ export function VisualComposerClient({
     updateBlockField(effectiveMediaField, value)
     setMediaUploadState('idle')
     setMediaMessage(value ? 'Media selected. Save the block to publish it.' : 'Media cleared. Save the block to publish it.')
+    setMediaPanelMode('closed')
+  }
+
+  function openMediaPanel(field: MediaFieldName, mode: Exclude<MediaPanelMode, 'closed'>) {
+    setActiveMediaField(field)
+    setMediaPanelMode(mode)
+    setMediaUploadState('idle')
+    setMediaMessage('')
   }
 
   async function refreshMediaLibrary() {
@@ -631,6 +648,7 @@ export function VisualComposerClient({
     updateBlockField(effectiveMediaField, result.media.id)
     setMediaUploadState('success')
     setMediaMessage('Uploaded and selected. Save the block to publish it.')
+    setMediaPanelMode('closed')
     form.reset()
   }
 
@@ -827,7 +845,7 @@ export function VisualComposerClient({
                       <div className="visual-composer__mediaHeader">
                         <div>
                           <span>Media</span>
-                          <small>Select or upload images here without leaving the Composer.</small>
+                          <small>Keep the current media visible, then replace it only when needed.</small>
                         </div>
                         <div>
                           <button onClick={refreshMediaLibrary} type="button">
@@ -837,13 +855,23 @@ export function VisualComposerClient({
                       </div>
                       <div className="visual-composer__mediaTargets" role="group" aria-label="Media target">
                         {showPrimaryImage ? (
-                          <button data-active={effectiveMediaField === 'image'} onClick={() => setActiveMediaField('image')} type="button">
+                          <button
+                            data-active={effectiveMediaField === 'image'}
+                            onClick={() => {
+                              setActiveMediaField('image')
+                              setMediaPanelMode('closed')
+                            }}
+                            type="button"
+                          >
                             Main image
                           </button>
                         ) : null}
                         <button
                           data-active={effectiveMediaField === 'backgroundImage'}
-                          onClick={() => setActiveMediaField('backgroundImage')}
+                          onClick={() => {
+                            setActiveMediaField('backgroundImage')
+                            setMediaPanelMode('closed')
+                          }}
                           type="button"
                         >
                           {selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}
@@ -867,45 +895,73 @@ export function VisualComposerClient({
                           <MediaPreview
                             label="Main image preview"
                             mediaOptions={mediaOptions}
-                            onSelect={() => setActiveMediaField('image')}
+                            onSelect={() => openMediaPanel('image', 'library')}
                             value={editorBlock.image}
                           />
                         ) : null}
                         <MediaPreview
                           label={selectedBlockType === 'hero' ? 'Hero/background preview' : 'Background preview'}
                           mediaOptions={mediaOptions}
-                          onSelect={() => setActiveMediaField('backgroundImage')}
+                          onSelect={() => openMediaPanel('backgroundImage', 'library')}
                           value={editorBlock.backgroundImage}
                         />
                       </div>
-                      <MediaLibrary
-                        activeField={effectiveMediaField}
-                        mediaOptions={mediaOptions}
-                        mediaSearch={mediaSearch}
-                        onChoose={chooseMedia}
-                        onSearch={setMediaSearch}
-                        selectedValue={effectiveMediaValue}
-                      />
-                      <form className="visual-composer__uploadForm" onSubmit={uploadMedia}>
+                      <div className="visual-composer__mediaActions">
                         <div>
-                          <strong>Upload and select</strong>
-                          <small>Images, SVG, GIF, and PDF use the same Media rules configured in Payload.</small>
+                          <strong>{effectiveMediaField === 'image' ? 'Main image' : selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}</strong>
+                          <small>Select which media slot you want to replace, then choose a source.</small>
                         </div>
-                        <input accept="image/*,application/pdf" name="file" type="file" />
-                        <div className="visual-composer__uploadFields">
-                          <label>
-                            <span>Title</span>
-                            <input name="title" placeholder="Optional title" type="text" />
-                          </label>
-                          <label>
-                            <span>Alt text</span>
-                            <input name="alt" placeholder="Optional alt text" type="text" />
-                          </label>
+                        <div>
+                          <button onClick={() => setMediaPanelMode(mediaPanelMode === 'library' ? 'closed' : 'library')} type="button">
+                            Replace from library
+                          </button>
+                          <button onClick={() => setMediaPanelMode(mediaPanelMode === 'upload' ? 'closed' : 'upload')} type="button">
+                            Upload new
+                          </button>
                         </div>
-                        <button className="visual-composer__button visual-composer__button--primary" disabled={mediaUploadState === 'uploading'} type="submit">
-                          {mediaUploadState === 'uploading' ? 'Uploading...' : 'Upload and select'}
-                        </button>
-                      </form>
+                      </div>
+                      {mediaPanelMode === 'library' ? (
+                        <MediaLibrary
+                          activeField={effectiveMediaField}
+                          mediaOptions={mediaOptions}
+                          mediaSearch={mediaSearch}
+                          onChoose={chooseMedia}
+                          onClose={() => setMediaPanelMode('closed')}
+                          onSearch={setMediaSearch}
+                          selectedValue={effectiveMediaValue}
+                        />
+                      ) : null}
+                      {mediaPanelMode === 'upload' ? (
+                        <form className="visual-composer__uploadForm" onSubmit={uploadMedia}>
+                          <div>
+                            <strong>Upload and select</strong>
+                            <small>Images, SVG, GIF, and PDF use the same Media rules configured in Payload.</small>
+                          </div>
+                          <input accept="image/*,application/pdf" name="file" type="file" />
+                          <div className="visual-composer__uploadFields">
+                            <label>
+                              <span>Title</span>
+                              <input name="title" placeholder="Optional title" type="text" />
+                            </label>
+                            <label>
+                              <span>Alt text</span>
+                              <input name="alt" placeholder="Optional alt text" type="text" />
+                            </label>
+                          </div>
+                          <div className="visual-composer__uploadActions">
+                            <button
+                              className="visual-composer__button visual-composer__button--primary"
+                              disabled={mediaUploadState === 'uploading'}
+                              type="submit"
+                            >
+                              {mediaUploadState === 'uploading' ? 'Uploading...' : 'Upload and select'}
+                            </button>
+                            <button className="visual-composer__button" onClick={() => setMediaPanelMode('closed')} type="button">
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : null}
                       {mediaMessage ? <p className={`visual-composer__message visual-composer__message--${mediaUploadState}`}>{mediaMessage}</p> : null}
                     </section>
 
