@@ -116,7 +116,8 @@ const designControls = [
     label: 'Media aspect ratio',
     type: 'select' as const,
     defaultValue: 'auto',
-    options: ['auto', 'wide', 'cinematic', 'square', 'tall'],
+    options: ['auto', 'natural', 'wide', 'cinematic', 'square', 'tall'],
+    admin: { description: 'Use natural with Media fit = contain to preserve the original image proportions.' },
   },
   {
     name: 'mediaObjectPosition',

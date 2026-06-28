@@ -466,6 +466,10 @@ h4 {
   aspect-ratio: 21 / 9;
 }
 
+.media-panel--aspect-natural {
+  min-height: 0;
+}
+
 .media-panel--aspect-square {
   aspect-ratio: 1 / 1;
 }
@@ -923,6 +927,7 @@ h4 {
   }
 
   .media-panel--aspect-wide,
+  .media-panel--aspect-natural,
   .media-panel--aspect-cinematic,
   .media-panel--aspect-square,
   .media-panel--aspect-tall {

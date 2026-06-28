@@ -35,7 +35,7 @@ type DesignControls = {
   customSummaryColor?: string
   customTitleColor?: string
   eyebrowColor?: ColorChoice
-  mediaAspectRatio?: 'auto' | 'wide' | 'cinematic' | 'square' | 'tall'
+  mediaAspectRatio?: 'auto' | 'natural' | 'wide' | 'cinematic' | 'square' | 'tall'
   mediaBackgroundColor?: string
   mediaFit?: 'cover' | 'contain' | 'fill'
   mediaFrame?: 'none' | 'card' | 'border' | 'shadow'
@@ -145,9 +145,14 @@ function sectionStyle(block: AnyBlock) {
   return backgroundColor ? { backgroundColor } : undefined
 }
 
-function mediaStyle(design: DesignControls) {
+function mediaStyle(design: DesignControls, aspectRatio?: string) {
   const backgroundColor = safeColor(design.mediaBackgroundColor)
-  return backgroundColor ? { backgroundColor } : undefined
+  if (!backgroundColor && !aspectRatio) return undefined
+
+  return {
+    ...(backgroundColor ? { backgroundColor } : {}),
+    ...(aspectRatio ? { aspectRatio } : {}),
+  }
 }
 
 function innerClass(block: AnyBlock) {
@@ -271,8 +276,14 @@ function MediaPanel({
   image?: MediaValue
   priority?: boolean
 }) {
-  const media = getMediaInfo(image, priority ? 'hero' : 'card')
   const mediaDesign = design || {}
+  const mediaFit = mediaDesign.mediaFit || 'cover'
+  const preferredSize = mediaFit === 'contain' ? undefined : priority ? 'hero' : 'card'
+  const media = getMediaInfo(image, preferredSize)
+  const naturalAspectRatio =
+    mediaDesign.mediaAspectRatio === 'natural' && media?.width && media?.height
+      ? `${media.width} / ${media.height}`
+      : undefined
 
   return (
     <div
@@ -284,7 +295,7 @@ function MediaPanel({
         `media-panel--frame-${mediaDesign.mediaFrame || 'card'}`,
         `media-panel--pad-${mediaDesign.mediaPadding || 'none'}`,
       )}
-      style={mediaStyle(mediaDesign)}
+      style={mediaStyle(mediaDesign, naturalAspectRatio)}
     >
       {media?.url ? (
         <Image
