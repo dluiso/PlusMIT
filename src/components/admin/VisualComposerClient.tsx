@@ -7,11 +7,13 @@ import { adminPath } from '@/lib/admin-route'
 type MediaReference = number | string | null | undefined
 type MediaFieldName = 'backgroundImage' | 'image'
 type MediaPanelMode = 'closed' | 'library' | 'upload'
+type StructureState = 'error' | 'idle' | 'saving' | 'success'
 
 export type PageBlock = {
   backgroundImage?: MediaReference
   blockType?: string
   eyebrow?: string | null
+  hidden?: boolean | null
   highlightText?: string | null
   image?: MediaReference
   layoutVariant?: string | null
@@ -80,6 +82,13 @@ type VisualComposerClientProps = {
 type SaveState = 'dirty' | 'error' | 'idle' | 'saving' | 'saved'
 type UploadState = 'error' | 'idle' | 'success' | 'uploading'
 
+type LayoutAction =
+  | { type: 'delete'; index: number }
+  | { type: 'duplicate'; index: number }
+  | { type: 'insert'; afterIndex?: number; blockType: string }
+  | { type: 'move'; fromIndex: number; toIndex: number }
+  | { type: 'toggleHidden'; hidden: boolean; index: number }
+
 const blockLabels: Record<string, string> = {
   caseStudyHighlight: 'Case Study Highlight',
   contactForm: 'Contact Form',
@@ -111,6 +120,18 @@ const previewSizes = [
   { label: 'Desktop', width: 1280 },
   { label: 'Tablet', width: 820 },
   { label: 'Mobile', width: 390 },
+]
+
+const insertBlockOptions = [
+  { label: 'CTA Banner', value: 'ctaBanner' },
+  { label: 'Hero', value: 'hero' },
+  { label: 'Image + Text', value: 'imageText' },
+  { label: 'Industries', value: 'industryCards' },
+  { label: 'Rich Text', value: 'richText' },
+  { label: 'Services Grid', value: 'servicesGrid' },
+  { label: 'SmartFiche', value: 'smartfiche' },
+  { label: 'Stats', value: 'stats' },
+  { label: 'Testimonials', value: 'testimonials' },
 ]
 
 const cardBlockTypes = new Set([
@@ -528,6 +549,9 @@ export function VisualComposerClient({
   })
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState('')
+  const [structureState, setStructureState] = useState<StructureState>('idle')
+  const [structureMessage, setStructureMessage] = useState('')
+  const [newBlockType, setNewBlockType] = useState(insertBlockOptions[0].value)
   const [activeMediaField, setActiveMediaField] = useState<MediaFieldName>('backgroundImage')
   const [mediaPanelMode, setMediaPanelMode] = useState<MediaPanelMode>('closed')
   const [mediaSearch, setMediaSearch] = useState('')
@@ -544,6 +568,9 @@ export function VisualComposerClient({
   const showPrimaryImage = blockSupportsPrimaryImage(selectedBlockType)
   const effectiveMediaField: MediaFieldName = showPrimaryImage ? activeMediaField : 'backgroundImage'
   const effectiveMediaValue = editorBlock?.[effectiveMediaField]
+  const hasUnsavedBlockChanges = saveState === 'dirty'
+  const structureBusy = structureState === 'saving'
+  const structureActionsDisabled = structureBusy || hasUnsavedBlockChanges
   const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug, selectedBlockIndex, previewVersion)
 
   function selectPage(page: PageSummary) {
@@ -552,6 +579,8 @@ export function VisualComposerClient({
     setEditorBlock(page.layout?.[0] ? cloneBlock(page.layout[0]) : null)
     setSaveState('idle')
     setMessage('')
+    setStructureState('idle')
+    setStructureMessage('')
   }
 
   function selectBlock(block: PageBlock, index: number) {
@@ -559,6 +588,57 @@ export function VisualComposerClient({
     setEditorBlock(cloneBlock(block))
     setSaveState('idle')
     setMessage('')
+    setStructureState('idle')
+    setStructureMessage('')
+  }
+
+  function applyUpdatedPage(updatedPage: PageSummary, nextBlockIndex: number, notice: string) {
+    const safeIndex = Math.max(0, Math.min(nextBlockIndex, (updatedPage.layout?.length || 1) - 1))
+
+    setPages((current) => current.map((page) => (String(page.id) === String(updatedPage.id) ? updatedPage : page)))
+    setSelectedPageId(updatedPage.id)
+    setSelectedBlockIndex(safeIndex)
+    setEditorBlock(updatedPage.layout?.[safeIndex] ? cloneBlock(updatedPage.layout[safeIndex]) : null)
+    setSaveState('idle')
+    setMessage('')
+    setStructureState('success')
+    setStructureMessage(notice)
+    setPreviewVersion((current) => current + 1)
+  }
+
+  async function applyLayoutAction(action: LayoutAction, notice: string) {
+    if (!selectedPage) return
+
+    setStructureState('saving')
+    setStructureMessage('')
+
+    const response = await fetch(`/api/visual-composer/pages/${selectedPage.id}/layout`, {
+      body: JSON.stringify({ action }),
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH',
+    })
+
+    const result = (await response.json().catch(() => null)) as { error?: string; page?: PageSummary; selectedBlockIndex?: number } | null
+
+    if (!response.ok || !result?.page) {
+      setStructureState('error')
+      setStructureMessage(result?.error || 'The page structure could not be updated.')
+      return
+    }
+
+    applyUpdatedPage(result.page, result.selectedBlockIndex ?? selectedBlockIndex, notice)
+  }
+
+  function deleteBlock(index: number) {
+    const block = selectedPage?.layout?.[index]
+    const title = block ? getBlockTitle(block, index) : `Block ${index + 1}`
+
+    if (!window.confirm(`Delete "${title}" from this page? This cannot be undone without restoring a backup or editing history.`)) {
+      return
+    }
+
+    void applyLayoutAction({ index, type: 'delete' }, 'Block deleted.')
   }
 
   function markDirty() {
@@ -796,17 +876,84 @@ export function VisualComposerClient({
                 </summary>
                 <ol className="visual-composer__blockList">
                   {(selectedPage.layout || []).map((block, index) => (
-                    <li className="visual-composer__blockItem" data-active={index === selectedBlockIndex} key={`${block.blockType || 'block'}-${index}`}>
-                      <button onClick={() => selectBlock(block, index)} type="button">
+                    <li
+                      className="visual-composer__blockItem"
+                      data-active={index === selectedBlockIndex}
+                      data-hidden={Boolean(block.hidden)}
+                      key={`${block.blockType || 'block'}-${index}`}
+                    >
+                      <button className="visual-composer__blockSelect" onClick={() => selectBlock(block, index)} type="button">
                         <span>{index + 1}</span>
                         <div>
                           <strong>{getBlockTitle(block, index)}</strong>
-                          <small>{getBlockLabel(block.blockType)}</small>
+                          <small>
+                            {getBlockLabel(block.blockType)}
+                            {block.hidden ? ' - Hidden' : ''}
+                          </small>
                         </div>
                       </button>
+                      <div className="visual-composer__blockActions" aria-label={`Actions for ${getBlockTitle(block, index)}`}>
+                        <button
+                          disabled={structureActionsDisabled || index === 0}
+                          onClick={() => void applyLayoutAction({ fromIndex: index, toIndex: index - 1, type: 'move' }, 'Block moved up.')}
+                          type="button"
+                        >
+                          Up
+                        </button>
+                        <button
+                          disabled={structureActionsDisabled || index >= (selectedPage.layout?.length || 0) - 1}
+                          onClick={() => void applyLayoutAction({ fromIndex: index, toIndex: index + 1, type: 'move' }, 'Block moved down.')}
+                          type="button"
+                        >
+                          Down
+                        </button>
+                        <button
+                          disabled={structureActionsDisabled}
+                          onClick={() => void applyLayoutAction({ index, type: 'duplicate' }, 'Block duplicated.')}
+                          type="button"
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          disabled={structureActionsDisabled}
+                          onClick={() => void applyLayoutAction({ hidden: !block.hidden, index, type: 'toggleHidden' }, block.hidden ? 'Block shown.' : 'Block hidden.')}
+                          type="button"
+                        >
+                          {block.hidden ? 'Show' : 'Hide'}
+                        </button>
+                        <button disabled={structureActionsDisabled || (selectedPage.layout?.length || 0) <= 1} onClick={() => deleteBlock(index)} type="button">
+                          Delete
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ol>
+                <div className="visual-composer__insertBlock">
+                  <label>
+                    <span>Add block</span>
+                    <select onChange={(event) => setNewBlockType(event.target.value)} value={newBlockType}>
+                      {insertBlockOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    disabled={structureActionsDisabled}
+                    onClick={() =>
+                      void applyLayoutAction(
+                        { afterIndex: selectedBlockIndex, blockType: newBlockType, type: 'insert' },
+                        'Block added.',
+                      )
+                    }
+                    type="button"
+                  >
+                    Add after selected
+                  </button>
+                </div>
+                {hasUnsavedBlockChanges ? <p className="visual-composer__structureNote">Save the selected block before changing page structure.</p> : null}
+                {structureMessage ? <p className={`visual-composer__message visual-composer__message--${structureState}`}>{structureMessage}</p> : null}
               </details>
 
               <section className="visual-composer__editor">

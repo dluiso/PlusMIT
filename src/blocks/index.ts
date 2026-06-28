@@ -185,6 +185,14 @@ const designControls = [
 
 const sectionBase = [
   {
+    name: 'hidden',
+    dbName: 'is_hidden',
+    label: 'Hide section on public site',
+    type: 'checkbox' as const,
+    defaultValue: false,
+    admin: { description: 'Hidden sections stay editable in the CMS and Visual Composer, but do not render publicly.' },
+  },
+  {
     name: 'sectionId',
     label: 'Section anchor ID',
     type: 'text' as const,

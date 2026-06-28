@@ -18,6 +18,7 @@ type PageDocument = {
 const allowedTopLevelFields = new Set([
   'eyebrow',
   'highlightText',
+  'hidden',
   'layoutVariant',
   'maxWidth',
   'mediaPosition',
@@ -74,6 +75,10 @@ function sanitizeRelationshipValue(value: unknown) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function sanitizeBooleanValue(value: unknown) {
+  return typeof value === 'boolean' ? value : undefined
+}
+
 function sanitizeBlockPatch(value: unknown) {
   if (!isPlainObject(value)) return null
 
@@ -81,7 +86,7 @@ function sanitizeBlockPatch(value: unknown) {
 
   for (const [key, fieldValue] of Object.entries(value)) {
     if (allowedTopLevelFields.has(key)) {
-      patch[key] = sanitizeStringValue(fieldValue)
+      patch[key] = key === 'hidden' ? sanitizeBooleanValue(fieldValue) : sanitizeStringValue(fieldValue)
     }
 
     if (allowedRelationshipFields.has(key)) {

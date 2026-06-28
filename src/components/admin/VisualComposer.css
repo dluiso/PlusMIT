@@ -269,7 +269,12 @@
   border-color: var(--theme-success-500);
 }
 
-.visual-composer__blockItem button {
+.visual-composer__blockItem[data-hidden='true'] {
+  border-style: dashed;
+  opacity: 0.78;
+}
+
+.visual-composer__blockSelect {
   display: grid;
   width: 100%;
   grid-template-columns: 28px minmax(0, 1fr);
@@ -283,7 +288,7 @@
   text-align: left;
 }
 
-.visual-composer__blockItem button > span {
+.visual-composer__blockSelect > span {
   display: inline-flex;
   width: 28px;
   height: 28px;
@@ -298,6 +303,72 @@
 .visual-composer__blockItem small {
   display: block;
   margin-top: 2px;
+}
+
+.visual-composer__blockActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-top: 1px solid var(--theme-elevation-100);
+  padding: 0 12px 12px 50px;
+}
+
+.visual-composer__blockActions button,
+.visual-composer__insertBlock button {
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--theme-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 8px;
+}
+
+.visual-composer__blockActions button:hover,
+.visual-composer__insertBlock button:hover {
+  border-color: var(--theme-success-500);
+}
+
+.visual-composer__blockActions button:disabled,
+.visual-composer__insertBlock button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.visual-composer__insertBlock {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border-top: 1px solid var(--theme-elevation-150);
+  padding-top: 12px;
+}
+
+.visual-composer__insertBlock label {
+  display: grid;
+  gap: 6px;
+}
+
+.visual-composer__insertBlock span,
+.visual-composer__structureNote {
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.visual-composer__insertBlock select {
+  width: 100%;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 7px;
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  font: inherit;
+  padding: 9px 10px;
+}
+
+.visual-composer__insertBlock button {
+  justify-self: start;
 }
 
 .visual-composer__editor {

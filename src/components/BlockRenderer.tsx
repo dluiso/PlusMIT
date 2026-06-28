@@ -61,6 +61,7 @@ type AnyBlock = {
   design?: DesignControls
   eyebrow?: string
   form?: { slug?: string; fields?: FormField[]; confirmationMessage?: string } | number
+  hidden?: boolean
   highlightText?: string
   image?: MediaValue
   itemLimit?: number
@@ -499,6 +500,24 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
       {await Promise.all(
         blocks.map(async (block, index) => {
           const key = `${block.blockType || 'block'}-${block.sectionId || index}`
+
+          if (block.hidden) {
+            if (!composerPreview) return null
+
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            return (
+              <section
+                className={cx('composer-hidden-section', composerProps.className)}
+                data-composer-block={composerProps['data-composer-block']}
+                key={key}
+              >
+                <div>
+                  <small>Hidden section</small>
+                  <strong>{block.title || block.eyebrow || block.blockType || `Block ${index + 1}`}</strong>
+                </div>
+              </section>
+            )
+          }
 
           if (block.blockType === 'hero') {
             const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
