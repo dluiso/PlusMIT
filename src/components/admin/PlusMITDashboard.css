@@ -155,6 +155,16 @@
   color: var(--theme-elevation-600);
 }
 
+.plusmit-dashboard__watchList small {
+  color: var(--theme-elevation-550);
+  line-height: 1.35;
+}
+
+.plusmit-dashboard__snippet {
+  color: var(--theme-success-500) !important;
+  font-weight: 800;
+}
+
 .plusmit-dashboard__leadList,
 .plusmit-dashboard__watchList {
   display: grid;
@@ -165,6 +175,10 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.plusmit-dashboard__healthGrid--compact {
+  margin-bottom: 14px;
 }
 
 .plusmit-dashboard__healthGrid div {

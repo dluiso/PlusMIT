@@ -808,6 +808,22 @@ function getVisibleInspectorTabs(blockType?: string) {
   })
 }
 
+function getPreviewInspectorTab(blockType: string | undefined, target: EventTarget | null): InspectorTab {
+  const element = target as { closest?: (selector: string) => Element | null } | null
+  if (!element?.closest) return 'content'
+  const clickedMedia = element.closest('.dashboard-visual, .media-panel, .section-bg-image, .section-bg-overlay')
+
+  if (clickedMedia && (blockType === 'hero' || blockSupportsPrimaryImage(blockType))) {
+    return 'media'
+  }
+
+  if (element.closest('.modern-card, .stats-row, .timeline, .faq-list, .contact-details, .cta-row, .button, .section-view-all')) {
+    return 'content'
+  }
+
+  return 'design'
+}
+
 function getBlockGuide(blockType?: string) {
   if (blockType === 'hero') {
     return 'Hero blocks control the first screen: headline, CTA, stats, and the main visual. Use Media position to switch between side image, full background, or no image.'
@@ -1033,14 +1049,14 @@ export function VisualComposerClient({
     setStructureMessage('')
   }
 
-  function selectBlock(block: PageBlock, index: number) {
+  function selectBlock(block: PageBlock, index: number, preferredTab: InspectorTab = 'content') {
     if (index !== selectedBlockIndex && !canLeaveCurrentBlock()) return
 
     setSelectedBlockIndex(index)
     setEditorBlock(cloneBlock(block))
     setSaveState('idle')
     setMessage('')
-    setActiveInspectorTab('content')
+    setActiveInspectorTab(preferredTab)
     setStructureState('idle')
     setStructureMessage('')
   }
@@ -1282,7 +1298,7 @@ export function VisualComposerClient({
 
           event.preventDefault()
           event.stopPropagation()
-          selectBlock(selectedPage.layout[index], index)
+          selectBlock(selectedPage.layout[index], index, getPreviewInspectorTab(selectedPage.layout[index].blockType, event.target))
         })
       })
     } catch {

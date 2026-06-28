@@ -191,13 +191,15 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
 
       return issues.length
         ? {
+            description: page.seo?.description || 'No meta description configured.',
             href: `${adminPath('/collections/pages')}/${page.id}`,
             issues: issues.join(', '),
+            seoTitle: page.seo?.title || page.title || page.slug || 'Untitled page',
             title: page.title || page.slug || 'Untitled page',
           }
         : null
     })
-    .filter((issue): issue is { href: string; issues: string; title: string } => Boolean(issue))
+    .filter((issue): issue is { description: string; href: string; issues: string; seoTitle: string; title: string } => Boolean(issue))
 
   const mediaMissingAlt = media.filter((item) => !item.alt?.trim())
   const largeMedia = media.filter((item) => typeof item.filesize === 'number' && item.filesize > 800 * 1024)
@@ -207,6 +209,8 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
     largeMedia,
     mediaMissingAlt,
     nonImageMedia,
+    publishedPages,
+    seoReady: Math.max(0, publishedPages.length - seoIssues.length),
     seoIssues,
   }
 }
@@ -332,11 +336,17 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
             <h2>SEO watchlist</h2>
             <p>Published pages that need metadata attention.</p>
           </div>
+          <div className="plusmit-dashboard__healthGrid plusmit-dashboard__healthGrid--compact">
+            <div><span>SEO ready</span><strong>{contentInsights.seoReady}</strong></div>
+            <div><span>Need attention</span><strong>{contentInsights.seoIssues.length}</strong></div>
+          </div>
           <div className="plusmit-dashboard__watchList">
             {contentInsights.seoIssues.length ? (
               contentInsights.seoIssues.slice(0, 5).map((issue) => (
                 <Link href={issue.href} key={issue.href}>
                   <strong>{issue.title}</strong>
+                  <small className="plusmit-dashboard__snippet">{issue.seoTitle}</small>
+                  <small>{issue.description}</small>
                   <span>{issue.issues}</span>
                 </Link>
               ))

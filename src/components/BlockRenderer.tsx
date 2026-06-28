@@ -149,11 +149,13 @@ function sectionClass(block: AnyBlock) {
   )
 }
 
-function composerSectionProps(index: number, selectedBlockIndex?: number, composerPreview = false) {
+function composerSectionProps(index: number, selectedBlockIndex?: number, composerPreview = false, block?: AnyBlock) {
   if (!composerPreview) return {}
 
   return {
     'data-composer-block': String(index),
+    'data-composer-title': block?.title || block?.eyebrow || block?.blockType || `Section ${index + 1}`,
+    'data-composer-type': block?.blockType || 'section',
     className: cx(index === selectedBlockIndex && 'composer-preview-block--selected'),
   }
 }
@@ -541,7 +543,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           if (block.hidden) {
             if (!composerPreview) return null
 
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx('composer-hidden-section', composerProps.className)}
@@ -557,7 +559,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           if (block.blockType === 'hero') {
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), 'hero-section', composerProps.className)}
@@ -581,7 +583,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
 
           if (block.blockType === 'splitHero' || block.blockType === 'imageText' || block.blockType === 'smartfiche') {
             const reverse = block.mediaPosition === 'left'
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), composerProps.className)}
@@ -611,7 +613,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
 
           if (block.blockType === 'contactForm') {
             const form = typeof block.form === 'object' ? block.form : null
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), 'contact-section', composerProps.className)}
@@ -633,7 +635,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           if (block.blockType === 'stats') {
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), composerProps.className)}
@@ -651,7 +653,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           if (block.blockType === 'richText' || block.blockType === 'securityNotice') {
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), composerProps.className)}
@@ -672,7 +674,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           if (block.blockType === 'technologyStack') {
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), composerProps.className)}
@@ -696,7 +698,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           if (block.blockType === 'ctaBanner' || block.blockType === 'recoveryEmergencyCta') {
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), composerProps.className)}
@@ -715,7 +717,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           if (block.blockType === 'processTimeline') {
-            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+            const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
             return (
               <section
                 className={cx(sectionClass(block), composerProps.className)}
@@ -733,7 +735,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
           }
 
           const items = await resolveItems(block)
-          const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview)
+          const composerProps = composerSectionProps(index, selectedBlockIndex, composerPreview, block)
 
           if (block.blockType === 'faqAccordion') {
             return (
