@@ -44,6 +44,21 @@ function sanitizeSitemapPriority(value: unknown) {
   return Math.max(0, Math.min(Number(numberValue.toFixed(1)), 1))
 }
 
+function sanitizeSlugValue(value: unknown) {
+  if (typeof value !== 'string') return undefined
+
+  const slug = value
+    .trim()
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9/_-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/\/{2,}/g, '/')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || undefined
+}
+
 function canUseAdminMutation(request: NextRequest) {
   const origin = request.headers.get('origin')
   if (!origin) return true
@@ -81,6 +96,7 @@ function sanitizeSettingsPayload(value: unknown, currentSeo: Record<string, unkn
   if (!isPlainObject(value)) return null
 
   const status = value.status === 'published' ? 'published' : value.status === 'draft' ? 'draft' : undefined
+  const slug = sanitizeSlugValue(value.slug)
   const title = sanitizeStringValue(value.title)
   const seoInput = isPlainObject(value.seo) ? value.seo : {}
   const seo: Record<string, unknown> = { ...(currentSeo || {}) }
@@ -119,6 +135,7 @@ function sanitizeSettingsPayload(value: unknown, currentSeo: Record<string, unkn
   }
 
   return {
+    ...(slug !== undefined ? { slug } : {}),
     ...(typeof status === 'string' ? { status } : {}),
     ...(title !== undefined ? { title } : {}),
     seo,

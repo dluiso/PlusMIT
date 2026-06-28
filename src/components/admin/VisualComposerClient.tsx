@@ -150,6 +150,11 @@ type QualityCheck = {
   label: string
   ready: boolean
 }
+type SeoDiagnostic = {
+  label: string
+  message: string
+  severity: 'good' | 'warning' | 'error'
+}
 
 type PageSettingsDraft = {
   canonicalUrl: string
@@ -162,6 +167,7 @@ type PageSettingsDraft = {
   schemaType: string
   sitemapInclude: boolean
   sitemapPriority: string
+  slug: string
   status: string
   title: string
   twitterImage: MediaReference
@@ -360,6 +366,10 @@ function publicUrlFromSlug(siteUrl: string, slug?: string, selectedBlockIndex = 
   return url.toString()
 }
 
+function getPublicCanonicalUrl(siteUrl: string, slug?: string) {
+  return new URL(publicPathFromSlug(slug), siteUrl).toString()
+}
+
 function formatDate(value?: string) {
   if (!value) return 'No date'
 
@@ -402,6 +412,7 @@ function getPageSettingsDraft(page?: PageSummary | null): PageSettingsDraft {
     schemaType: page?.seo?.schemaType || 'WebPage',
     sitemapInclude: page?.seo?.sitemapInclude !== false,
     sitemapPriority: typeof page?.seo?.sitemapPriority === 'number' ? String(page.seo.sitemapPriority) : '0.7',
+    slug: page?.slug || '',
     status: page?.status || 'draft',
     title: page?.title || '',
     twitterImage: getRelationshipId(page?.seo?.twitterImage),
@@ -728,25 +739,116 @@ function getRelationshipId(value?: MediaReference | MediaOption | null) {
   return value
 }
 
-function getPagePublishChecks(page?: PageSummary | null) {
+function getPagePublishChecks(page?: PageSummary | null, draft?: PageSettingsDraft) {
   if (!page) return []
 
   const visibleBlocks = (page.layout || []).filter((block) => !block.hidden)
   const hasHero = visibleBlocks.some((block) => block.blockType === 'hero' || block.title)
   const hasPrimaryCta = visibleBlocks.some((block) => block.primaryCta?.label && block.primaryCta?.url)
-  const hasSocialImage = Boolean(getRelationshipId(page.seo?.openGraphImage) || getRelationshipId(page.seo?.twitterImage))
+  const hasSocialImage = Boolean(draft?.openGraphImage || draft?.twitterImage || getRelationshipId(page.seo?.openGraphImage) || getRelationshipId(page.seo?.twitterImage))
+  const seoTitle = draft?.seoTitle ?? page.seo?.title
+  const seoDescription = draft?.seoDescription ?? page.seo?.description
 
   return [
-    { label: 'Published or ready to publish', ready: page.status === 'published', risk: 'info' },
+    { label: 'Published or ready to publish', ready: (draft?.status || page.status) === 'published', risk: 'info' },
     { label: 'Visible layout sections', ready: visibleBlocks.length > 0 },
     { label: 'Hero or main heading', ready: hasHero },
     { label: 'Primary CTA configured', ready: hasPrimaryCta },
-    { label: 'SEO title', ready: Boolean(page.seo?.title?.trim()) },
-    { label: 'Meta description', ready: Boolean(page.seo?.description?.trim()) },
+    { label: 'SEO title', ready: Boolean(seoTitle?.trim()) },
+    { label: 'Meta description', ready: Boolean(seoDescription?.trim()) },
     { label: 'Social image', ready: hasSocialImage },
-    { label: 'Sitemap included', ready: page.seo?.sitemapInclude !== false },
-    { label: 'Noindex disabled', ready: !page.seo?.noindex },
+    { label: 'Sitemap included', ready: draft ? draft.sitemapInclude : page.seo?.sitemapInclude !== false },
+    { label: 'Noindex disabled', ready: draft ? !draft.noindex : !page.seo?.noindex },
   ]
+}
+
+function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSettingsDraft, siteUrl: string): SeoDiagnostic[] {
+  if (!page) return []
+
+  const seoTitle = draft.seoTitle.trim()
+  const seoDescription = draft.seoDescription.trim()
+  const openGraphTitle = draft.openGraphTitle.trim()
+  const openGraphDescription = draft.openGraphDescription.trim()
+  const canonicalUrl = draft.canonicalUrl.trim()
+  const slug = draft.slug.trim()
+  const hasSocialImage = Boolean(draft.openGraphImage || draft.twitterImage || getRelationshipId(page.seo?.openGraphImage) || getRelationshipId(page.seo?.twitterImage))
+  const diagnostics: SeoDiagnostic[] = []
+
+  diagnostics.push(
+    seoTitle
+      ? {
+          label: 'SEO title',
+          message: seoTitle.length > 60 ? `${seoTitle.length} chars. Keep it under 60 for search results.` : `${seoTitle.length} chars. Search title is within the target range.`,
+          severity: seoTitle.length > 60 || seoTitle.length < 25 ? 'warning' : 'good',
+        }
+      : { label: 'SEO title', message: 'Missing. Add a concise search title.', severity: 'error' },
+  )
+
+  diagnostics.push(
+    seoDescription
+      ? {
+          label: 'Meta description',
+          message:
+            seoDescription.length > 160
+              ? `${seoDescription.length} chars. Shorten it for search snippets.`
+              : `${seoDescription.length} chars. Description is ready for snippets.`,
+          severity: seoDescription.length > 160 || seoDescription.length < 70 ? 'warning' : 'good',
+        }
+      : { label: 'Meta description', message: 'Missing. Add a summary for search results.', severity: 'error' },
+  )
+
+  diagnostics.push({
+    label: 'Social sharing',
+    message: hasSocialImage
+      ? 'Social image is configured.'
+      : 'Missing social image. Add Open Graph or Twitter/X media before sharing.',
+    severity: hasSocialImage ? 'good' : 'warning',
+  })
+
+  diagnostics.push({
+    label: 'Social copy',
+    message: openGraphTitle || openGraphDescription ? 'Custom social title or description is configured.' : 'Using SEO title and description as social fallback.',
+    severity: openGraphTitle || openGraphDescription ? 'good' : 'warning',
+  })
+
+  diagnostics.push({
+    label: 'Indexing',
+    message: draft.noindex
+      ? 'Noindex is enabled. Search engines should not index this page.'
+      : draft.nofollow
+        ? 'Nofollow is enabled. Links on this page may not pass signals.'
+        : 'Indexing controls are open.',
+    severity: draft.noindex || draft.nofollow ? 'warning' : 'good',
+  })
+
+  diagnostics.push({
+    label: 'Sitemap',
+    message: draft.sitemapInclude ? `Included with priority ${draft.sitemapPriority || '0.7'}.` : 'Excluded from sitemap.',
+    severity: draft.sitemapInclude ? 'good' : 'warning',
+  })
+
+  diagnostics.push({
+    label: 'Slug',
+    message: slug ? `Public path: ${publicPathFromSlug(slug)}` : 'Missing slug. A page needs a stable public path.',
+    severity: slug ? 'good' : 'error',
+  })
+
+  if (canonicalUrl) {
+    const canonicalIsValid = /^https?:\/\//i.test(canonicalUrl)
+    diagnostics.push({
+      label: 'Canonical URL',
+      message: canonicalIsValid ? canonicalUrl : 'Canonical should be a full http(s) URL.',
+      severity: canonicalIsValid ? 'good' : 'warning',
+    })
+  } else {
+    diagnostics.push({
+      label: 'Canonical URL',
+      message: `Default canonical: ${getPublicCanonicalUrl(siteUrl, slug || page.slug)}`,
+      severity: 'good',
+    })
+  }
+
+  return diagnostics
 }
 
 function getMediaRecommendation(blockType?: string, mediaPosition?: string | null) {
@@ -1170,8 +1272,11 @@ export function VisualComposerClient({
   const selectedPage = useMemo(() => getSelectedPage(pages, selectedPageId), [pages, selectedPageId])
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
   const selectedBlockType = selectedBlock?.blockType
-  const publishChecks = useMemo(() => getPagePublishChecks(selectedPage), [selectedPage])
+  const publishChecks = useMemo(() => getPagePublishChecks(selectedPage, pageSettings), [selectedPage, pageSettings])
   const publishReadyCount = publishChecks.filter((check) => check.ready).length
+  const seoDiagnostics = useMemo(() => getSeoDiagnostics(selectedPage, pageSettings, siteUrl), [pageSettings, selectedPage, siteUrl])
+  const seoBlockingIssues = seoDiagnostics.filter((item) => item.severity === 'error').length
+  const seoWarningIssues = seoDiagnostics.filter((item) => item.severity === 'warning').length
   const socialImage = useMemo(
     () => getMediaOption(mediaOptions, pageSettings.openGraphImage || pageSettings.twitterImage) || getSocialImage(mediaOptions, selectedPage),
     [mediaOptions, pageSettings.openGraphImage, pageSettings.twitterImage, selectedPage],
@@ -1499,6 +1604,7 @@ export function VisualComposerClient({
           title: pageSettings.seoTitle,
           twitterImage: pageSettings.twitterImage,
         },
+        slug: pageSettings.slug,
         status: pageSettings.status,
         title: pageSettings.title,
       }),
@@ -1656,6 +1762,30 @@ export function VisualComposerClient({
                     </span>
                   ))}
                 </div>
+                <div className="visual-composer__seoHealth">
+                  <div className="visual-composer__seoHealthHeader">
+                    <span>SEO health</span>
+                    <small>
+                      {seoBlockingIssues ? `${seoBlockingIssues} errors` : 'No errors'} / {seoWarningIssues} warnings
+                    </small>
+                  </div>
+                  <div className="visual-composer__seoHealthList">
+                    {seoDiagnostics.map((item) => (
+                      <span data-severity={item.severity} key={item.label}>
+                        <strong>{item.label}</strong>
+                        <small>{item.message}</small>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="visual-composer__searchPreview">
+                  <span>Search preview</span>
+                  <div>
+                    <small>{pageSettings.canonicalUrl || getPublicCanonicalUrl(siteUrl, pageSettings.slug || selectedPage.slug)}</small>
+                    <strong>{pageSettings.seoTitle || pageSettings.title || selectedPage.title || 'Untitled page'}</strong>
+                    <p>{pageSettings.seoDescription || 'No meta description configured.'}</p>
+                  </div>
+                </div>
                 <div className="visual-composer__socialPreview">
                   <span>Social preview</span>
                   <div>
@@ -1682,6 +1812,7 @@ export function VisualComposerClient({
                   </summary>
                   <div className="visual-composer__fieldGrid">
                     <TextField label="Page title" onChange={(value) => updatePageSetting('title', value)} value={pageSettings.title} />
+                    <TextField label="Slug" onChange={(value) => updatePageSetting('slug', value)} value={pageSettings.slug} />
                     <label className="visual-composer__field">
                       <span>Status</span>
                       <select onChange={(event) => updatePageSetting('status', event.target.value)} value={pageSettings.status}>
