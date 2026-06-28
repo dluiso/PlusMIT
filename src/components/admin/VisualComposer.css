@@ -12,6 +12,8 @@
 .visual-composer__header,
 .visual-composer__pagePicker,
 .visual-composer__structure,
+.visual-composer__inspector,
+.visual-composer__editor,
 .visual-composer__main,
 .visual-composer__empty {
   border: 1px solid var(--theme-elevation-150);
@@ -74,38 +76,56 @@
 }
 
 .visual-composer__button,
-.visual-composer__viewportSwitch a {
+.visual-composer__viewportSwitch button {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--theme-elevation-250);
   border-radius: 7px;
+  background: transparent;
   color: var(--theme-text);
+  cursor: pointer;
   font-weight: 700;
   padding: 0 14px;
   text-decoration: none;
 }
 
 .visual-composer__button--primary,
-.visual-composer__viewportSwitch a[data-active='true'] {
+.visual-composer__viewportSwitch button[data-active='true'] {
   border-color: transparent;
   background: var(--theme-success-500);
   color: var(--theme-bg);
 }
 
+.visual-composer__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .visual-composer__workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.38fr);
   gap: 14px;
   align-items: start;
 }
 
 .visual-composer__main,
+.visual-composer__inspector,
 .visual-composer__pagePicker,
 .visual-composer__structure,
+.visual-composer__editor,
 .visual-composer__empty {
   padding: 18px;
+}
+
+.visual-composer__inspector {
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
 }
 
 .visual-composer__pagePicker {
@@ -148,8 +168,14 @@
   display: grid;
   gap: 4px;
   min-width: 190px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
   color: var(--theme-text);
+  cursor: pointer;
+  font: inherit;
   padding: 12px;
+  text-align: left;
   text-decoration: none;
 }
 
@@ -208,10 +234,7 @@
 }
 
 .visual-composer__structure {
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 120px);
-  overflow: auto;
+  box-shadow: none;
 }
 
 .visual-composer__structure summary {
@@ -238,13 +261,28 @@
 }
 
 .visual-composer__blockItem {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 10px;
-  padding: 12px;
+  padding: 0;
 }
 
-.visual-composer__blockItem > span {
+.visual-composer__blockItem[data-active='true'] {
+  border-color: var(--theme-success-500);
+}
+
+.visual-composer__blockItem button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--theme-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 12px;
+  text-align: left;
+}
+
+.visual-composer__blockItem button > span {
   display: inline-flex;
   width: 28px;
   height: 28px;
@@ -261,28 +299,81 @@
   margin-top: 2px;
 }
 
-.visual-composer__blockItem dl {
-  display: grid;
-  gap: 5px;
-  margin: 10px 0 0;
+.visual-composer__editor {
+  box-shadow: none;
 }
 
-.visual-composer__blockItem dl div {
+.visual-composer__editorHeader {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
-.visual-composer__blockItem dt {
+.visual-composer__editorHeader h2 {
+  font-size: 18px;
+}
+
+.visual-composer__form,
+.visual-composer__field,
+.visual-composer__editorGroup,
+.visual-composer__editorGroup > div {
+  display: grid;
+  gap: 12px;
+}
+
+.visual-composer__fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.visual-composer__field span {
   color: var(--theme-elevation-600);
   font-size: 12px;
   font-weight: 800;
 }
 
-.visual-composer__blockItem dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  text-align: right;
+.visual-composer__field input,
+.visual-composer__field select,
+.visual-composer__field textarea {
+  width: 100%;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 7px;
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  font: inherit;
+  padding: 9px 10px;
+}
+
+.visual-composer__editorGroup {
+  border-top: 1px solid var(--theme-elevation-150);
+  padding-top: 12px;
+}
+
+.visual-composer__editorGroup summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.visual-composer__editorGroup[open] summary {
+  margin-bottom: 12px;
+}
+
+.visual-composer__message {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 7px;
+  padding: 10px;
+}
+
+.visual-composer__message--error {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.visual-composer__message--saved {
+  border-color: var(--theme-success-500);
 }
 
 .visual-composer__empty {
@@ -297,6 +388,11 @@
   }
 
   .visual-composer__structure {
+    position: static;
+    max-height: none;
+  }
+
+  .visual-composer__inspector {
     position: static;
     max-height: none;
   }
@@ -319,6 +415,10 @@
   }
 
   .visual-composer__pagePicker {
+    grid-template-columns: 1fr;
+  }
+
+  .visual-composer__fieldGrid {
     grid-template-columns: 1fr;
   }
 }
