@@ -258,11 +258,13 @@ function TextAreaField({
 }
 
 function MediaField({
+  help,
   label,
   mediaOptions,
   onChange,
   value,
 }: {
+  help?: string
   label: string
   mediaOptions: MediaOption[]
   onChange: (value: string | null) => void
@@ -279,6 +281,7 @@ function MediaField({
           </option>
         ))}
       </select>
+      {help ? <small>{help}</small> : null}
     </label>
   )
 }
@@ -665,12 +668,6 @@ export function VisualComposerClient({
                       <SelectField label="Text align" onChange={(value) => updateBlockField('textAlign', value)} options={selectOptions.textAlign} value={editorBlock.textAlign} />
                       <SelectField label="Spacing" onChange={(value) => updateBlockField('spacing', value)} options={selectOptions.spacing} value={editorBlock.spacing} />
                       <SelectField label="Max width" onChange={(value) => updateBlockField('maxWidth', value)} options={selectOptions.maxWidth} value={editorBlock.maxWidth} />
-                      <SelectField
-                        label="Media position"
-                        onChange={(value) => updateBlockField('mediaPosition', value)}
-                        options={selectOptions.mediaPosition}
-                        value={editorBlock.mediaPosition}
-                      />
                     </div>
 
                     <details className="visual-composer__editorGroup" open>
@@ -691,23 +688,34 @@ export function VisualComposerClient({
                       </div>
                     </details>
 
-                    <details className="visual-composer__editorGroup">
-                      <summary>Cards, media, and mobile</summary>
+                    <details className="visual-composer__editorGroup" open>
+                      <summary>Media</summary>
                       <div className="visual-composer__fieldGrid">
-                        {showCardControls ? (
-                          <>
-                            <SelectField label="Card density" onChange={(value) => updateDesignField('cardDensity', value)} options={selectOptions.cardDensity} value={editorBlock.design?.cardDensity} />
-                            <SelectField label="Card columns" onChange={(value) => updateDesignField('cardColumns', value)} options={selectOptions.cardColumns} value={editorBlock.design?.cardColumns} />
-                          </>
-                        ) : null}
                         {showPrimaryImage ? (
-                          <MediaField label="Main image" mediaOptions={mediaOptions} onChange={(value) => updateBlockField('image', value)} value={editorBlock.image} />
+                          <MediaField
+                            help="Used as the main visual for split/image sections."
+                            label="Main image"
+                            mediaOptions={mediaOptions}
+                            onChange={(value) => updateBlockField('image', value)}
+                            value={editorBlock.image}
+                          />
                         ) : null}
                         <MediaField
-                          label={selectedBlockType === 'hero' ? 'Hero image' : 'Background image'}
+                          help={
+                            selectedBlockType === 'hero'
+                              ? 'Use Media position = right for the dashboard image, or background for a full section background.'
+                              : 'Use Media position = background to show this behind the whole section.'
+                          }
+                          label={selectedBlockType === 'hero' ? 'Hero / background image' : 'Background image'}
                           mediaOptions={mediaOptions}
                           onChange={(value) => updateBlockField('backgroundImage', value)}
                           value={editorBlock.backgroundImage}
+                        />
+                        <SelectField
+                          label="Media position"
+                          onChange={(value) => updateBlockField('mediaPosition', value)}
+                          options={selectOptions.mediaPosition}
+                          value={editorBlock.mediaPosition}
                         />
                         <SelectField label="Media size" onChange={(value) => updateDesignField('mediaSize', value)} options={selectOptions.mediaSize} value={editorBlock.design?.mediaSize} />
                         <SelectField label="Media fit" onChange={(value) => updateDesignField('mediaFit', value)} options={selectOptions.mediaFit} value={editorBlock.design?.mediaFit} />
@@ -725,6 +733,18 @@ export function VisualComposerClient({
                         />
                         <SelectField label="Media frame" onChange={(value) => updateDesignField('mediaFrame', value)} options={selectOptions.mediaFrame} value={editorBlock.design?.mediaFrame} />
                         <SelectField label="Media padding" onChange={(value) => updateDesignField('mediaPadding', value)} options={selectOptions.mediaPadding} value={editorBlock.design?.mediaPadding} />
+                      </div>
+                    </details>
+
+                    <details className="visual-composer__editorGroup">
+                      <summary>Cards and mobile</summary>
+                      <div className="visual-composer__fieldGrid">
+                        {showCardControls ? (
+                          <>
+                            <SelectField label="Card density" onChange={(value) => updateDesignField('cardDensity', value)} options={selectOptions.cardDensity} value={editorBlock.design?.cardDensity} />
+                            <SelectField label="Card columns" onChange={(value) => updateDesignField('cardColumns', value)} options={selectOptions.cardColumns} value={editorBlock.design?.cardColumns} />
+                          </>
+                        ) : null}
                         <SelectField label="Mobile layout" onChange={(value) => updateDesignField('mobileLayout', value)} options={selectOptions.mobileLayout} value={editorBlock.design?.mobileLayout} />
                         <SelectField label="Mobile media" onChange={(value) => updateDesignField('mobileMedia', value)} options={selectOptions.mobileMedia} value={editorBlock.design?.mobileMedia} />
                         <SelectField label="Mobile spacing" onChange={(value) => updateDesignField('mobileSpacing', value)} options={selectOptions.mobileSpacing} value={editorBlock.design?.mobileSpacing} />

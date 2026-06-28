@@ -517,7 +517,7 @@ export async function BlockRenderer({ blocks, composerPreview = false, selectedB
                     <CtaRow block={block} />
                     <StatsRow stats={block.stats} />
                   </div>
-                  {block.mediaPosition !== 'none' ? <DashboardHeroVisual block={block} /> : null}
+                  {block.mediaPosition !== 'none' && block.mediaPosition !== 'background' ? <DashboardHeroVisual block={block} /> : null}
                 </div>
               </section>
             )

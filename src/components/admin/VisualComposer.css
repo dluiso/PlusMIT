@@ -372,6 +372,12 @@
   font-weight: 800;
 }
 
+.visual-composer__field small {
+  color: var(--theme-elevation-550);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .visual-composer__field input,
 .visual-composer__field select,
 .visual-composer__field textarea {
