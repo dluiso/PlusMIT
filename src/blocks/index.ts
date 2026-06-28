@@ -186,7 +186,6 @@ const designControls = [
 const sectionBase = [
   {
     name: 'hidden',
-    dbName: 'is_hidden',
     label: 'Hide section on public site',
     type: 'checkbox' as const,
     defaultValue: false,

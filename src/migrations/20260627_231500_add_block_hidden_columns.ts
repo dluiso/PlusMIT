@@ -29,12 +29,12 @@ const blockTables = [
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   for (const table of blockTables) {
-    await db.execute(sql.raw(`ALTER TABLE IF EXISTS "${table}" ADD COLUMN IF NOT EXISTS "is_hidden" boolean DEFAULT false;`))
+    await db.execute(sql.raw(`ALTER TABLE IF EXISTS "${table}" ADD COLUMN IF NOT EXISTS "hidden" boolean DEFAULT false;`))
   }
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
   for (const table of blockTables) {
-    await db.execute(sql.raw(`ALTER TABLE IF EXISTS "${table}" DROP COLUMN IF EXISTS "is_hidden";`))
+    await db.execute(sql.raw(`ALTER TABLE IF EXISTS "${table}" DROP COLUMN IF EXISTS "hidden";`))
   }
 }
