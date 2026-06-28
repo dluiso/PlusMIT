@@ -29,8 +29,12 @@ type DashboardPage = {
   seo?: {
     description?: string | null
     noindex?: boolean | null
+    openGraphDescription?: string | null
+    openGraphImage?: unknown
+    openGraphTitle?: string | null
     sitemapInclude?: boolean | null
     title?: string | null
+    twitterImage?: unknown
   } | null
   slug?: string | null
   status?: string | null
@@ -177,24 +181,36 @@ function getLeadFormSource(lead: LatestLead) {
   return 'Website form'
 }
 
+function hasRelationshipValue(value: unknown) {
+  if (!value) return false
+  if (typeof value === 'number' || typeof value === 'string') return true
+  return typeof value === 'object' && 'id' in value
+}
+
 function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
   const publishedPages = pages.filter((page) => page.status === 'published')
+  const pagesWithSocialImage = publishedPages.filter((page) => hasRelationshipValue(page.seo?.openGraphImage) || hasRelationshipValue(page.seo?.twitterImage))
   const seoIssues = publishedPages
     .map((page) => {
+      const seoTitle = page.seo?.title?.trim()
+      const seoDescription = page.seo?.description?.trim()
       const issues = [
-        page.seo?.title?.trim() ? null : 'missing SEO title',
-        page.seo?.description?.trim() ? null : 'missing meta description',
+        seoTitle ? null : 'missing SEO title',
+        seoTitle && seoTitle.length > 60 ? 'SEO title over 60 chars' : null,
+        seoDescription ? null : 'missing meta description',
+        seoDescription && seoDescription.length > 160 ? 'meta description over 160 chars' : null,
         page.layout?.length ? null : 'empty layout',
+        hasRelationshipValue(page.seo?.openGraphImage) || hasRelationshipValue(page.seo?.twitterImage) ? null : 'missing social image',
         page.seo?.noindex ? 'noindex enabled' : null,
         page.seo?.sitemapInclude === false ? 'not in sitemap' : null,
       ].filter(Boolean)
 
       return issues.length
         ? {
-            description: page.seo?.description || 'No meta description configured.',
+            description: seoDescription || 'No meta description configured.',
             href: `${adminPath('/collections/pages')}/${page.id}`,
             issues: issues.join(', '),
-            seoTitle: page.seo?.title || page.title || page.slug || 'Untitled page',
+            seoTitle: seoTitle || page.title || page.slug || 'Untitled page',
             title: page.title || page.slug || 'Untitled page',
           }
         : null
@@ -210,6 +226,7 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
     mediaMissingAlt,
     nonImageMedia,
     publishedPages,
+    socialReady: pagesWithSocialImage.length,
     seoReady: Math.max(0, publishedPages.length - seoIssues.length),
     seoIssues,
   }
@@ -339,6 +356,8 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
           <div className="plusmit-dashboard__healthGrid plusmit-dashboard__healthGrid--compact">
             <div><span>SEO ready</span><strong>{contentInsights.seoReady}</strong></div>
             <div><span>Need attention</span><strong>{contentInsights.seoIssues.length}</strong></div>
+            <div><span>Social image</span><strong>{contentInsights.socialReady}</strong></div>
+            <div><span>Published</span><strong>{contentInsights.publishedPages.length}</strong></div>
           </div>
           <div className="plusmit-dashboard__watchList">
             {contentInsights.seoIssues.length ? (

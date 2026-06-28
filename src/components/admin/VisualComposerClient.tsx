@@ -93,6 +93,16 @@ export type PageSummary = {
   id: number | string
   layout?: PageBlock[]
   pageType?: string | null
+  seo?: {
+    description?: string | null
+    noindex?: boolean | null
+    openGraphDescription?: string | null
+    openGraphImage?: MediaReference | MediaOption | null
+    openGraphTitle?: string | null
+    sitemapInclude?: boolean | null
+    title?: string | null
+    twitterImage?: MediaReference | MediaOption | null
+  } | null
   slug?: string
   status?: string
   title?: string
@@ -660,6 +670,54 @@ function getMediaWarnings(media?: MediaOption | null) {
   return warnings
 }
 
+function getRelationshipId(value?: MediaReference | MediaOption | null) {
+  if (!value) return null
+  if (typeof value === 'object' && 'id' in value) return value.id
+  return value
+}
+
+function getPagePublishChecks(page?: PageSummary | null) {
+  if (!page) return []
+
+  const visibleBlocks = (page.layout || []).filter((block) => !block.hidden)
+  const hasHero = visibleBlocks.some((block) => block.blockType === 'hero' || block.title)
+  const hasPrimaryCta = visibleBlocks.some((block) => block.primaryCta?.label && block.primaryCta?.url)
+  const hasSocialImage = Boolean(getRelationshipId(page.seo?.openGraphImage) || getRelationshipId(page.seo?.twitterImage))
+
+  return [
+    { label: 'Published or ready to publish', ready: page.status === 'published', risk: 'info' },
+    { label: 'Visible layout sections', ready: visibleBlocks.length > 0 },
+    { label: 'Hero or main heading', ready: hasHero },
+    { label: 'Primary CTA configured', ready: hasPrimaryCta },
+    { label: 'SEO title', ready: Boolean(page.seo?.title?.trim()) },
+    { label: 'Meta description', ready: Boolean(page.seo?.description?.trim()) },
+    { label: 'Social image', ready: hasSocialImage },
+    { label: 'Sitemap included', ready: page.seo?.sitemapInclude !== false },
+    { label: 'Noindex disabled', ready: !page.seo?.noindex },
+  ]
+}
+
+function getMediaRecommendation(blockType?: string, mediaPosition?: string | null) {
+  if (mediaPosition === 'background') {
+    return 'Background images should be wide, high contrast, and under 800 KB when possible. Use overlay/contrast in the design if text sits on top.'
+  }
+
+  if (blockType === 'hero') {
+    return 'Hero images work best as wide JPG/WebP assets around 1600x900. Use cover for photos and contain for dashboards or diagrams.'
+  }
+
+  if (blockType === 'smartfiche' || blockType === 'imageText') {
+    return 'Diagrams, screenshots, and logos usually look better with Media fit = contain and Media ratio = natural or wide.'
+  }
+
+  return 'Use images with useful alt text, reasonable file size, and enough resolution for the selected card or section layout.'
+}
+
+function getSocialImage(mediaOptions: MediaOption[], page?: PageSummary | null) {
+  const imageId = getRelationshipId(page?.seo?.openGraphImage) || getRelationshipId(page?.seo?.twitterImage)
+  return getMediaOption(mediaOptions, imageId)
+}
+
 function MediaPreview({
   label,
   mediaOptions,
@@ -1016,6 +1074,10 @@ export function VisualComposerClient({
   const selectedPage = useMemo(() => getSelectedPage(pages, selectedPageId), [pages, selectedPageId])
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
   const selectedBlockType = selectedBlock?.blockType
+  const publishChecks = useMemo(() => getPagePublishChecks(selectedPage), [selectedPage])
+  const publishReadyCount = publishChecks.filter((check) => check.ready).length
+  const socialImage = useMemo(() => getSocialImage(mediaOptions, selectedPage), [mediaOptions, selectedPage])
+  const socialImageUrl = getMediaPreviewUrl(socialImage)
   const selectedBlockPresets = getBlockPresets(selectedBlockType)
   const selectedCardArrayConfig = getCardArrayConfig(selectedBlockType)
   const showCardControls = blockSupportsCards(selectedBlockType)
@@ -1397,6 +1459,43 @@ export function VisualComposerClient({
             </section>
 
             <aside className="visual-composer__inspector" aria-label="Block inspector">
+              <section className="visual-composer__publishPanel" aria-label="Publishing checklist">
+                <div className="visual-composer__publishHeader">
+                  <div>
+                    <strong>Publishing checklist</strong>
+                    <small>
+                      {publishReadyCount}/{publishChecks.length} ready
+                    </small>
+                  </div>
+                  <Link href={getPageEditHref(selectedPage.id)}>Edit SEO</Link>
+                </div>
+                <div className="visual-composer__checkList">
+                  {publishChecks.map((check) => (
+                    <span data-ready={check.ready} key={check.label}>
+                      {check.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="visual-composer__socialPreview">
+                  <span>Social preview</span>
+                  <div>
+                    {socialImageUrl ? (
+                      <span
+                        aria-label={socialImage?.alt || socialImage?.title || 'Social image preview'}
+                        className="visual-composer__socialImage"
+                        role="img"
+                        style={{ backgroundImage: `url("${socialImageUrl}")` }}
+                      />
+                    ) : (
+                      <span className="visual-composer__socialImage" data-empty="true">
+                        No image
+                      </span>
+                    )}
+                    <strong>{selectedPage.seo?.openGraphTitle || selectedPage.seo?.title || selectedPage.title || 'Untitled page'}</strong>
+                    <small>{selectedPage.seo?.openGraphDescription || selectedPage.seo?.description || 'No social description configured.'}</small>
+                  </div>
+                </div>
+              </section>
               <details className="visual-composer__structure" open>
                 <summary>
                   <span>
@@ -1720,6 +1819,7 @@ export function VisualComposerClient({
                                 : 'Use background to place the selected image behind the section, or none to hide media.'}
                             </small>
                           </div>
+                          <p className="visual-composer__mediaRecommendation">{getMediaRecommendation(selectedBlockType, editorBlock.mediaPosition)}</p>
                           <div className="visual-composer__mediaPreviewGrid">
                             {showPrimaryImage ? (
                               <MediaPreview

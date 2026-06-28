@@ -19,7 +19,7 @@ async function getPages(payload: ComposerPayload) {
   try {
     const result = await payload.find({
       collection: 'pages',
-      depth: 0,
+      depth: 1,
       limit: 100,
       pagination: false,
       sort: 'title',
