@@ -6,6 +6,8 @@ import { adminPath } from '@/lib/admin-route'
 
 type MediaReference = number | string | null | undefined
 type MediaFieldName = 'backgroundImage' | 'image'
+type MediaTargetName = 'backgroundImage' | 'image' | 'openGraphImage' | 'twitterImage'
+type MediaPanelContext = 'block' | 'page'
 type MediaPanelMode = 'closed' | 'library' | 'upload'
 type InspectorTab = 'advanced' | 'content' | 'design' | 'media' | 'responsive'
 type StructureState = 'error' | 'idle' | 'saving' | 'success'
@@ -94,12 +96,17 @@ export type PageSummary = {
   layout?: PageBlock[]
   pageType?: string | null
   seo?: {
+    canonicalUrl?: string | null
     description?: string | null
+    keywords?: string | null
+    nofollow?: boolean | null
     noindex?: boolean | null
     openGraphDescription?: string | null
     openGraphImage?: MediaReference | MediaOption | null
     openGraphTitle?: string | null
+    schemaType?: string | null
     sitemapInclude?: boolean | null
+    sitemapPriority?: number | null
     title?: string | null
     twitterImage?: MediaReference | MediaOption | null
   } | null
@@ -145,12 +152,19 @@ type QualityCheck = {
 }
 
 type PageSettingsDraft = {
+  canonicalUrl: string
+  keywords: string
+  nofollow: boolean
   noindex: boolean
+  openGraphImage: MediaReference
   openGraphDescription: string
   openGraphTitle: string
+  schemaType: string
   sitemapInclude: boolean
+  sitemapPriority: string
   status: string
   title: string
+  twitterImage: MediaReference
   seoDescription: string
   seoTitle: string
 }
@@ -211,6 +225,8 @@ const inspectorTabs: Array<{ id: InspectorTab; label: string }> = [
   { id: 'responsive', label: 'Responsive' },
   { id: 'advanced', label: 'Advanced' },
 ]
+
+const schemaTypeOptions = ['WebPage', 'ProfessionalService', 'Service', 'FAQPage', 'Article', 'BreadcrumbList']
 
 const responsivePresets: ResponsivePreset[] = [
   {
@@ -376,12 +392,19 @@ function getPagePreviewHref(id: number | string) {
 
 function getPageSettingsDraft(page?: PageSummary | null): PageSettingsDraft {
   return {
+    canonicalUrl: page?.seo?.canonicalUrl || '',
+    keywords: page?.seo?.keywords || '',
+    nofollow: Boolean(page?.seo?.nofollow),
     noindex: Boolean(page?.seo?.noindex),
+    openGraphImage: getRelationshipId(page?.seo?.openGraphImage),
     openGraphDescription: page?.seo?.openGraphDescription || '',
     openGraphTitle: page?.seo?.openGraphTitle || '',
+    schemaType: page?.seo?.schemaType || 'WebPage',
     sitemapInclude: page?.seo?.sitemapInclude !== false,
+    sitemapPriority: typeof page?.seo?.sitemapPriority === 'number' ? String(page.seo.sitemapPriority) : '0.7',
     status: page?.status || 'draft',
     title: page?.title || '',
+    twitterImage: getRelationshipId(page?.seo?.twitterImage),
     seoDescription: page?.seo?.description || '',
     seoTitle: page?.seo?.title || '',
   }
@@ -747,6 +770,11 @@ function getSocialImage(mediaOptions: MediaOption[], page?: PageSummary | null) 
   return getMediaOption(mediaOptions, imageId)
 }
 
+function getSeoCounterText(value: string, recommendedMax: number) {
+  const length = value.trim().length
+  return `${length}/${recommendedMax}${length > recommendedMax ? ' - shorten recommended' : ''}`
+}
+
 function getBlockQualityChecks(block: PageBlock | null, mediaOptions: MediaOption[]): QualityCheck[] {
   if (!block) return []
 
@@ -828,7 +856,7 @@ function MediaLibrary({
   onSearch,
   selectedValue,
 }: {
-  activeField: MediaFieldName
+  activeField: MediaTargetName
   mediaOptions: MediaOption[]
   mediaSearch: string
   onChoose: (value: number | string | null) => void
@@ -849,8 +877,16 @@ function MediaLibrary({
     <div className="visual-composer__mediaLibrary">
       <div className="visual-composer__mediaLibraryHeader">
         <div>
-          <strong>{activeField === 'image' ? 'Choose main image' : 'Choose background / hero image'}</strong>
-          <small>Select an asset below. Save the block when the preview looks right.</small>
+          <strong>
+            {activeField === 'image'
+              ? 'Choose main image'
+              : activeField === 'openGraphImage'
+                ? 'Choose Open Graph image'
+                : activeField === 'twitterImage'
+                  ? 'Choose Twitter/X image'
+                  : 'Choose background / hero image'}
+          </strong>
+          <small>Select an asset below. Save when the preview looks right.</small>
         </div>
         <div>
           <button onClick={() => onChoose(null)} type="button">
@@ -1115,6 +1151,7 @@ export function VisualComposerClient({
   const [structureMessage, setStructureMessage] = useState('')
   const [pageTemplate, setPageTemplate] = useState(pageTemplateOptions[0].value)
   const [activeMediaField, setActiveMediaField] = useState<MediaFieldName>('backgroundImage')
+  const [activeMediaContext, setActiveMediaContext] = useState<MediaPanelContext>('block')
   const [mediaPanelMode, setMediaPanelMode] = useState<MediaPanelMode>('closed')
   const [mediaSearch, setMediaSearch] = useState('')
   const [mediaMessage, setMediaMessage] = useState('')
@@ -1122,6 +1159,7 @@ export function VisualComposerClient({
   const [pageSettings, setPageSettings] = useState<PageSettingsDraft>(() => getPageSettingsDraft(getSelectedPage(initialPages, initialPageId)))
   const [pageSettingsState, setPageSettingsState] = useState<PageSettingsState>('idle')
   const [pageSettingsMessage, setPageSettingsMessage] = useState('')
+  const [activePageMediaField, setActivePageMediaField] = useState<'openGraphImage' | 'twitterImage'>('openGraphImage')
   const [previewVersion, setPreviewVersion] = useState(0)
   const previewRef = useRef<HTMLIFrameElement>(null)
 
@@ -1134,7 +1172,10 @@ export function VisualComposerClient({
   const selectedBlockType = selectedBlock?.blockType
   const publishChecks = useMemo(() => getPagePublishChecks(selectedPage), [selectedPage])
   const publishReadyCount = publishChecks.filter((check) => check.ready).length
-  const socialImage = useMemo(() => getSocialImage(mediaOptions, selectedPage), [mediaOptions, selectedPage])
+  const socialImage = useMemo(
+    () => getMediaOption(mediaOptions, pageSettings.openGraphImage || pageSettings.twitterImage) || getSocialImage(mediaOptions, selectedPage),
+    [mediaOptions, pageSettings.openGraphImage, pageSettings.twitterImage, selectedPage],
+  )
   const socialImageUrl = getMediaPreviewUrl(socialImage)
   const selectedBlockChecks = useMemo(() => getBlockQualityChecks(editorBlock, mediaOptions), [editorBlock, mediaOptions])
   const selectedBlockReadyCount = selectedBlockChecks.filter((check) => check.ready).length
@@ -1172,6 +1213,8 @@ export function VisualComposerClient({
     setPageSettings(getPageSettingsDraft(page))
     setPageSettingsState('idle')
     setPageSettingsMessage('')
+    setMediaPanelMode('closed')
+    setMediaMessage('')
   }
 
   function selectBlock(block: PageBlock, index: number, preferredTab: InspectorTab = 'content') {
@@ -1184,6 +1227,8 @@ export function VisualComposerClient({
     setActiveInspectorTab(preferredTab)
     setStructureState('idle')
     setStructureMessage('')
+    setMediaPanelMode('closed')
+    setMediaMessage('')
   }
 
   function applyUpdatedPage(updatedPage: PageSummary, nextBlockIndex: number, notice: string) {
@@ -1207,6 +1252,21 @@ export function VisualComposerClient({
     setPageSettings((current) => ({ ...current, [field]: value }))
     setPageSettingsState('dirty')
     setPageSettingsMessage('Unsaved page settings.')
+  }
+
+  function choosePageMedia(field: 'openGraphImage' | 'twitterImage', value: number | string | null) {
+    updatePageSetting(field, value)
+    setMediaUploadState('idle')
+    setMediaMessage(value ? 'Social image selected. Save page settings to publish it.' : 'Social image cleared. Save page settings to publish it.')
+    setMediaPanelMode('closed')
+  }
+
+  function openPageMediaPanel(field: 'openGraphImage' | 'twitterImage') {
+    setActiveMediaContext('page')
+    setActivePageMediaField(field)
+    setMediaPanelMode('library')
+    setMediaUploadState('idle')
+    setMediaMessage('')
   }
 
   async function applyLayoutAction(action: LayoutAction, notice: string) {
@@ -1295,6 +1355,7 @@ export function VisualComposerClient({
   }
 
   function openMediaPanel(field: MediaFieldName, mode: Exclude<MediaPanelMode, 'closed'>) {
+    setActiveMediaContext('block')
     setActiveMediaField(field)
     setMediaPanelMode(mode)
     setMediaUploadState('idle')
@@ -1427,9 +1488,16 @@ export function VisualComposerClient({
           description: pageSettings.seoDescription,
           noindex: pageSettings.noindex,
           openGraphDescription: pageSettings.openGraphDescription,
+          openGraphImage: pageSettings.openGraphImage,
           openGraphTitle: pageSettings.openGraphTitle,
+          canonicalUrl: pageSettings.canonicalUrl,
+          keywords: pageSettings.keywords,
+          nofollow: pageSettings.nofollow,
+          schemaType: pageSettings.schemaType,
           sitemapInclude: pageSettings.sitemapInclude,
+          sitemapPriority: pageSettings.sitemapPriority,
           title: pageSettings.seoTitle,
+          twitterImage: pageSettings.twitterImage,
         },
         status: pageSettings.status,
         title: pageSettings.title,
@@ -1603,8 +1671,8 @@ export function VisualComposerClient({
                         No image
                       </span>
                     )}
-                    <strong>{selectedPage.seo?.openGraphTitle || selectedPage.seo?.title || selectedPage.title || 'Untitled page'}</strong>
-                    <small>{selectedPage.seo?.openGraphDescription || selectedPage.seo?.description || 'No social description configured.'}</small>
+                    <strong>{pageSettings.openGraphTitle || pageSettings.seoTitle || pageSettings.title || selectedPage.title || 'Untitled page'}</strong>
+                    <small>{pageSettings.openGraphDescription || pageSettings.seoDescription || 'No social description configured.'}</small>
                   </div>
                 </div>
                 <details className="visual-composer__pageSettings">
@@ -1623,13 +1691,69 @@ export function VisualComposerClient({
                     </label>
                   </div>
                   <TextField label="SEO title" onChange={(value) => updatePageSetting('seoTitle', value)} value={pageSettings.seoTitle} />
+                  <small className="visual-composer__seoCounter">{getSeoCounterText(pageSettings.seoTitle, 60)}</small>
                   <TextAreaField label="Meta description" onChange={(value) => updatePageSetting('seoDescription', value)} value={pageSettings.seoDescription} />
+                  <small className="visual-composer__seoCounter">{getSeoCounterText(pageSettings.seoDescription, 160)}</small>
                   <TextField label="Open Graph title" onChange={(value) => updatePageSetting('openGraphTitle', value)} value={pageSettings.openGraphTitle} />
                   <TextAreaField label="Open Graph description" onChange={(value) => updatePageSetting('openGraphDescription', value)} value={pageSettings.openGraphDescription} />
+                  <div className="visual-composer__mediaPreviewGrid visual-composer__mediaPreviewGrid--social">
+                    <MediaPreview
+                      label="Open Graph image"
+                      mediaOptions={mediaOptions}
+                      onSelect={() => openPageMediaPanel('openGraphImage')}
+                      value={pageSettings.openGraphImage}
+                    />
+                    <MediaPreview
+                      label="Twitter/X image"
+                      mediaOptions={mediaOptions}
+                      onSelect={() => openPageMediaPanel('twitterImage')}
+                      value={pageSettings.twitterImage}
+                    />
+                  </div>
+                  {activeMediaContext === 'page' && mediaPanelMode === 'library' ? (
+                    <MediaLibrary
+                      activeField={activePageMediaField}
+                      mediaOptions={mediaOptions}
+                      mediaSearch={mediaSearch}
+                      onChoose={(value) => choosePageMedia(activePageMediaField, value)}
+                      onClose={() => setMediaPanelMode('closed')}
+                      onSearch={setMediaSearch}
+                      selectedValue={pageSettings[activePageMediaField]}
+                    />
+                  ) : null}
+                  <TextField label="Canonical URL" onChange={(value) => updatePageSetting('canonicalUrl', value)} value={pageSettings.canonicalUrl} />
+                  <TextField label="Internal keywords" onChange={(value) => updatePageSetting('keywords', value)} value={pageSettings.keywords} />
+                  <div className="visual-composer__fieldGrid">
+                    <label className="visual-composer__field">
+                      <span>Schema type</span>
+                      <select onChange={(event) => updatePageSetting('schemaType', event.target.value)} value={pageSettings.schemaType}>
+                        {schemaTypeOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="visual-composer__field">
+                      <span>Sitemap priority</span>
+                      <input
+                        max="1"
+                        min="0"
+                        onChange={(event) => updatePageSetting('sitemapPriority', event.target.value)}
+                        step="0.1"
+                        type="number"
+                        value={pageSettings.sitemapPriority}
+                      />
+                    </label>
+                  </div>
                   <div className="visual-composer__pageSettingsToggles">
                     <label>
                       <input checked={pageSettings.sitemapInclude} onChange={(event) => updatePageSetting('sitemapInclude', event.target.checked)} type="checkbox" />
                       <span>Include in sitemap</span>
+                    </label>
+                    <label>
+                      <input checked={pageSettings.nofollow} onChange={(event) => updatePageSetting('nofollow', event.target.checked)} type="checkbox" />
+                      <span>Nofollow</span>
                     </label>
                     <label>
                       <input checked={pageSettings.noindex} onChange={(event) => updatePageSetting('noindex', event.target.checked)} type="checkbox" />
@@ -2019,7 +2143,7 @@ export function VisualComposerClient({
                               </button>
                             </div>
                           </div>
-                          {mediaPanelMode === 'library' ? (
+                          {activeMediaContext === 'block' && mediaPanelMode === 'library' ? (
                             <MediaLibrary
                               activeField={effectiveMediaField}
                               mediaOptions={mediaOptions}
@@ -2030,7 +2154,7 @@ export function VisualComposerClient({
                               selectedValue={effectiveMediaValue}
                             />
                           ) : null}
-                          {mediaPanelMode === 'upload' ? (
+                          {activeMediaContext === 'block' && mediaPanelMode === 'upload' ? (
                             <form className="visual-composer__uploadForm" onSubmit={uploadMedia}>
                               <div>
                                 <strong>Upload and select</strong>

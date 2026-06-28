@@ -495,6 +495,19 @@
   border-color: var(--theme-success-500);
 }
 
+.visual-composer__seoCounter {
+  display: block;
+  margin-top: -6px;
+  color: var(--theme-elevation-550);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.visual-composer__mediaPreviewGrid--social {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .visual-composer__qualityPanel {
   display: grid;
   gap: 10px;

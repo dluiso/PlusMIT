@@ -14,6 +14,8 @@ type PageDocument = {
   updatedAt?: string
 }
 
+const allowedSchemaTypes = new Set(['WebPage', 'ProfessionalService', 'Service', 'FAQPage', 'Article', 'BreadcrumbList'])
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -26,6 +28,20 @@ function sanitizeStringValue(value: unknown) {
 
 function sanitizeBooleanValue(value: unknown) {
   return typeof value === 'boolean' ? value : undefined
+}
+
+function sanitizeRelationshipValue(value: unknown) {
+  if (typeof value === 'number') return value
+  if (typeof value !== 'string') return undefined
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function sanitizeSitemapPriority(value: unknown) {
+  const numberValue = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numberValue)) return undefined
+  return Math.max(0, Math.min(Number(numberValue.toFixed(1)), 1))
 }
 
 function canUseAdminMutation(request: NextRequest) {
@@ -68,8 +84,9 @@ function sanitizeSettingsPayload(value: unknown, currentSeo: Record<string, unkn
   const title = sanitizeStringValue(value.title)
   const seoInput = isPlainObject(value.seo) ? value.seo : {}
   const seo: Record<string, unknown> = { ...(currentSeo || {}) }
-  const seoTextFields = ['description', 'openGraphDescription', 'openGraphTitle', 'title']
-  const seoBooleanFields = ['noindex', 'sitemapInclude']
+  const seoTextFields = ['canonicalUrl', 'description', 'keywords', 'openGraphDescription', 'openGraphTitle', 'title']
+  const seoBooleanFields = ['nofollow', 'noindex', 'sitemapInclude']
+  const seoRelationshipFields = ['openGraphImage', 'twitterImage']
 
   for (const field of seoTextFields) {
     const sanitized = sanitizeStringValue(seoInput[field])
@@ -83,6 +100,22 @@ function sanitizeSettingsPayload(value: unknown, currentSeo: Record<string, unkn
     if (sanitized !== undefined) {
       seo[field] = sanitized
     }
+  }
+
+  for (const field of seoRelationshipFields) {
+    const sanitized = sanitizeRelationshipValue(seoInput[field])
+    if (sanitized !== undefined) {
+      seo[field] = sanitized
+    }
+  }
+
+  const sitemapPriority = sanitizeSitemapPriority(seoInput.sitemapPriority)
+  if (sitemapPriority !== undefined) {
+    seo.sitemapPriority = sitemapPriority
+  }
+
+  if (typeof seoInput.schemaType === 'string' && allowedSchemaTypes.has(seoInput.schemaType)) {
+    seo.schemaType = seoInput.schemaType
   }
 
   return {
