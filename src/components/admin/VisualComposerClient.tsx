@@ -61,8 +61,10 @@ export type MediaOption = {
   alt?: string | null
   filename?: string | null
   id: number | string
+  sizes?: Record<string, { url?: string | null } | undefined> | null
   title?: string | null
   updatedAt?: string
+  url?: string | null
 }
 
 type VisualComposerClientProps = {
@@ -290,12 +292,70 @@ function MediaField({
   )
 }
 
+function getMediaOption(mediaOptions: MediaOption[], value?: MediaReference) {
+  if (!value) return null
+  return mediaOptions.find((media) => String(media.id) === String(value)) || null
+}
+
+function getMediaPreviewUrl(media?: MediaOption | null) {
+  if (!media) return ''
+  return media.sizes?.card?.url || media.sizes?.thumbnail?.url || media.url || (media.filename ? `/api/media/file/${media.filename}` : '')
+}
+
+function MediaPreview({
+  label,
+  mediaOptions,
+  value,
+}: {
+  label: string
+  mediaOptions: MediaOption[]
+  value?: MediaReference
+}) {
+  const media = getMediaOption(mediaOptions, value)
+  const previewUrl = getMediaPreviewUrl(media)
+  const title = media?.title || media?.alt || media?.filename || (value ? `Media ${value}` : 'No media selected')
+
+  return (
+    <div className="visual-composer__mediaPreview">
+      <span>{label}</span>
+      {previewUrl ? (
+        <div
+          aria-label={title}
+          className="visual-composer__mediaPreviewImage"
+          role="img"
+          style={{ backgroundImage: `url("${previewUrl}")` }}
+        />
+      ) : (
+        <div className="visual-composer__mediaPreviewEmpty">No preview available</div>
+      )}
+      <strong>{title}</strong>
+      <small>{media ? `ID ${media.id}` : 'Choose an image from Media, or upload one first.'}</small>
+    </div>
+  )
+}
+
 function blockSupportsCards(blockType?: string) {
   return blockType ? cardBlockTypes.has(blockType) : false
 }
 
 function blockSupportsPrimaryImage(blockType?: string) {
   return blockType ? primaryImageBlockTypes.has(blockType) : false
+}
+
+function getBlockGuide(blockType?: string) {
+  if (blockType === 'hero') {
+    return 'Hero blocks control the first screen: headline, CTA, stats, and the main visual. Use Media position to switch between side image, full background, or no image.'
+  }
+
+  if (blockType && primaryImageBlockTypes.has(blockType)) {
+    return 'This block supports a main image plus layout controls. Replace the main image here, then adjust fit, ratio, anchor, and mobile behavior below.'
+  }
+
+  if (blockType && cardBlockTypes.has(blockType)) {
+    return 'This block renders repeated cards from CMS content. Use the visual controls for density, columns, spacing, and mobile layout without editing every card manually.'
+  }
+
+  return 'Use these safe controls for section text, spacing, colors, background media, and mobile behavior. For advanced content fields, open the Payload editor.'
 }
 
 function getBlockPresets(blockType?: string) {
@@ -452,9 +512,14 @@ export function VisualComposerClient({
     setMessage('')
   }
 
+  function markDirty() {
+    setSaveState('dirty')
+    setMessage('Unsaved changes. Save to refresh the preview.')
+  }
+
   function updateBlockField(field: keyof PageBlock, value: MediaReference | string) {
     setEditorBlock((current) => ({ ...(current || {}), [field]: value }))
-    setSaveState('dirty')
+    markDirty()
   }
 
   function updateDesignField(field: keyof NonNullable<PageBlock['design']>, value: string) {
@@ -465,7 +530,7 @@ export function VisualComposerClient({
         [field]: value,
       },
     }))
-    setSaveState('dirty')
+    markDirty()
   }
 
   function applyPreset(preset: ReturnType<typeof getBlockPresets>[number]) {
@@ -631,10 +696,11 @@ export function VisualComposerClient({
                     <p className="visual-composer__eyebrow">Block inspector</p>
                     <h2>{selectedBlock ? getBlockTitle(selectedBlock, selectedBlockIndex) : 'No block selected'}</h2>
                     <span>{selectedBlock ? getBlockLabel(selectedBlock.blockType) : 'Select a block to edit.'}</span>
+                    {saveState === 'dirty' ? <strong className="visual-composer__status">Unsaved changes</strong> : null}
                   </div>
                   <button
                     className="visual-composer__button visual-composer__button--primary"
-                    disabled={!editorBlock || saveState === 'saving' || saveState === 'idle'}
+                    disabled={!editorBlock || saveState === 'saving' || saveState === 'idle' || saveState === 'saved'}
                     onClick={saveBlock}
                     type="button"
                   >
@@ -645,6 +711,7 @@ export function VisualComposerClient({
                 {editorBlock ? (
                   <div className="visual-composer__form">
                     <section className="visual-composer__presetGroup" aria-label="Section presets">
+                      <p className="visual-composer__blockGuide">{getBlockGuide(selectedBlockType)}</p>
                       <span>Quick presets</span>
                       <div>
                         {selectedBlockPresets.map((preset) => (
@@ -696,6 +763,16 @@ export function VisualComposerClient({
                           onChange={(value) => updateBlockField('mediaPosition', value)}
                           options={selectOptions.mediaPosition}
                           value={editorBlock.mediaPosition}
+                        />
+                      </div>
+                      <div className="visual-composer__mediaPreviewGrid">
+                        {showPrimaryImage ? (
+                          <MediaPreview label="Main image preview" mediaOptions={mediaOptions} value={editorBlock.image} />
+                        ) : null}
+                        <MediaPreview
+                          label={selectedBlockType === 'hero' ? 'Hero/background preview' : 'Background preview'}
+                          mediaOptions={mediaOptions}
+                          value={editorBlock.backgroundImage}
                         />
                       </div>
                     </section>

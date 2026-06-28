@@ -416,6 +416,64 @@
   color: var(--theme-bg);
 }
 
+.visual-composer__mediaPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.visual-composer__mediaPreview {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-50);
+  padding: 10px;
+}
+
+.visual-composer__mediaPreview span {
+  color: var(--theme-elevation-650);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.visual-composer__mediaPreview strong {
+  overflow: hidden;
+  color: var(--theme-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visual-composer__mediaPreview small {
+  color: var(--theme-elevation-550);
+  font-size: 12px;
+}
+
+.visual-composer__mediaPreviewImage,
+.visual-composer__mediaPreviewEmpty {
+  min-height: 112px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 7px;
+  background-color: var(--theme-elevation-100);
+}
+
+.visual-composer__mediaPreviewImage {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.visual-composer__mediaPreviewEmpty {
+  display: grid;
+  place-items: center;
+  color: var(--theme-elevation-550);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .visual-composer__fieldGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -458,6 +516,28 @@
 
 .visual-composer__editorGroup[open] summary {
   margin-bottom: 12px;
+}
+
+.visual-composer__blockGuide {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 7px;
+  background: var(--theme-elevation-50);
+  color: var(--theme-elevation-650);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px;
+}
+
+.visual-composer__status {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  border: 1px solid var(--theme-success-500);
+  border-radius: 999px;
+  color: var(--theme-text);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 8px;
 }
 
 .visual-composer__message {
@@ -519,6 +599,10 @@
   }
 
   .visual-composer__fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .visual-composer__mediaPreviewGrid {
     grid-template-columns: 1fr;
   }
 }
