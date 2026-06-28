@@ -90,7 +90,22 @@ function sanitizeBlockPatch(value: unknown) {
 
 function canUseAdminMutation(request: NextRequest) {
   const origin = request.headers.get('origin')
-  return !origin || origin === request.nextUrl.origin
+  if (!origin) return true
+
+  const allowedOrigins = new Set([request.nextUrl.origin])
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '')
+
+  if (siteUrl) {
+    allowedOrigins.add(new URL(siteUrl).origin)
+  }
+
+  if (forwardedHost) {
+    allowedOrigins.add(`${forwardedProto}://${forwardedHost}`)
+  }
+
+  return allowedOrigins.has(origin)
 }
 
 function normalizePage(doc: PageDocument): PageDocument {
