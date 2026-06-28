@@ -129,10 +129,19 @@ type ResponsivePreset = {
   patch: NonNullable<PageBlock['design']>
 }
 
+type BlockLibraryItem = {
+  blockType?: string
+  description: string
+  label: string
+  preset?: string
+}
+
 type LayoutAction =
   | { type: 'delete'; index: number }
   | { type: 'duplicate'; index: number }
   | { type: 'insert'; afterIndex?: number; blockType: string }
+  | { type: 'insertPreset'; afterIndex?: number; preset: string }
+  | { type: 'appendTemplate'; template: string }
   | { type: 'move'; fromIndex: number; toIndex: number }
   | { type: 'toggleHidden'; hidden: boolean; index: number }
 
@@ -214,6 +223,49 @@ const insertBlockOptions = [
   { label: 'SmartFiche', value: 'smartfiche' },
   { label: 'Stats', value: 'stats' },
   { label: 'Testimonials', value: 'testimonials' },
+]
+
+const pageTemplateOptions = [
+  {
+    description: 'Hero, trust bar, services, process, testimonials, and CTA.',
+    label: 'Landing page',
+    value: 'landing',
+  },
+  {
+    description: 'Hero, process, FAQ, and CTA for service detail pages.',
+    label: 'Service page',
+    value: 'service',
+  },
+  {
+    description: 'Contact split section and assessment CTA.',
+    label: 'Contact page',
+    value: 'contact',
+  },
+  {
+    description: 'Simple policy copy section with narrow reading width.',
+    label: 'Legal page',
+    value: 'legal',
+  },
+]
+
+const blockLibraryGroups: Array<{ items: BlockLibraryItem[]; label: string }> = [
+  {
+    label: 'Page starters',
+    items: [
+      { description: 'Centered landing hero with assessment CTAs.', label: 'Service hero', preset: 'serviceLandingHero' },
+      { description: 'Dark contact section with contact details.', label: 'Contact section', preset: 'contactPage' },
+      { description: 'Image/text section for a solution narrative.', label: 'Solution split', preset: 'solutionSplit' },
+      { description: 'Centered CTA tuned for conversion.', label: 'Assessment CTA', preset: 'landingCta' },
+    ],
+  },
+  {
+    label: 'Content blocks',
+    items: insertBlockOptions.map((option) => ({
+      blockType: option.value,
+      description: `${option.label} section using the standard PlusMIT styling controls.`,
+      label: option.label,
+    })),
+  },
 ]
 
 const cardBlockTypes = new Set([
@@ -932,7 +984,7 @@ export function VisualComposerClient({
   const [activeInspectorTab, setActiveInspectorTab] = useState<InspectorTab>('content')
   const [structureState, setStructureState] = useState<StructureState>('idle')
   const [structureMessage, setStructureMessage] = useState('')
-  const [newBlockType, setNewBlockType] = useState(insertBlockOptions[0].value)
+  const [pageTemplate, setPageTemplate] = useState(pageTemplateOptions[0].value)
   const [activeMediaField, setActiveMediaField] = useState<MediaFieldName>('backgroundImage')
   const [mediaPanelMode, setMediaPanelMode] = useState<MediaPanelMode>('closed')
   const [mediaSearch, setMediaSearch] = useState('')
@@ -1040,6 +1092,28 @@ export function VisualComposerClient({
     }
 
     void applyLayoutAction({ index, type: 'delete' }, 'Block deleted.')
+  }
+
+  function addLibraryBlock(item: { blockType?: string; label: string; preset?: string }) {
+    if (item.preset) {
+      void applyLayoutAction({ afterIndex: selectedBlockIndex, preset: item.preset, type: 'insertPreset' }, `${item.label} added.`)
+      return
+    }
+
+    if (item.blockType) {
+      void applyLayoutAction({ afterIndex: selectedBlockIndex, blockType: item.blockType, type: 'insert' }, `${item.label} added.`)
+    }
+  }
+
+  function appendPageTemplate() {
+    const template = pageTemplateOptions.find((option) => option.value === pageTemplate)
+    const templateLabel = template?.label || 'template'
+
+    if (!window.confirm(`Append the "${templateLabel}" sections to this page? Existing sections will be kept.`)) {
+      return
+    }
+
+    void applyLayoutAction({ template: pageTemplate, type: 'appendTemplate' }, `${templateLabel} sections appended.`)
   }
 
   function markDirty() {
@@ -1368,30 +1442,50 @@ export function VisualComposerClient({
                     </li>
                   ))}
                 </ol>
-                <div className="visual-composer__insertBlock">
+                <details className="visual-composer__templatePanel">
+                  <summary>
+                    <span>Page templates</span>
+                    <small>Append a safe section set</small>
+                  </summary>
                   <label>
-                    <span>Add block</span>
-                    <select onChange={(event) => setNewBlockType(event.target.value)} value={newBlockType}>
-                      {insertBlockOptions.map((option) => (
+                    <span>Template</span>
+                    <select onChange={(event) => setPageTemplate(event.target.value)} value={pageTemplate}>
+                      {pageTemplateOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
                     </select>
+                    <small>{pageTemplateOptions.find((option) => option.value === pageTemplate)?.description}</small>
                   </label>
-                  <button
-                    disabled={structureActionsDisabled}
-                    onClick={() =>
-                      void applyLayoutAction(
-                        { afterIndex: selectedBlockIndex, blockType: newBlockType, type: 'insert' },
-                        'Block added.',
-                      )
-                    }
-                    type="button"
-                  >
-                    Add after selected
+                  <button disabled={structureActionsDisabled} onClick={appendPageTemplate} type="button">
+                    Append template
                   </button>
-                </div>
+                </details>
+                <details className="visual-composer__blockLibrary" open>
+                  <summary>
+                    <span>Block library</span>
+                    <small>Add after selected block</small>
+                  </summary>
+                  {blockLibraryGroups.map((group) => (
+                    <div className="visual-composer__libraryGroup" key={group.label}>
+                      <span>{group.label}</span>
+                      <div>
+                        {group.items.map((item) => (
+                          <button
+                            disabled={structureActionsDisabled}
+                            key={`${item.preset || item.blockType}-${item.label}`}
+                            onClick={() => addLibraryBlock(item)}
+                            type="button"
+                          >
+                            <strong>{item.label}</strong>
+                            <small>{item.description}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </details>
                 {hasUnsavedBlockChanges ? <p className="visual-composer__structureNote">Save the selected block before changing page structure.</p> : null}
                 {structureMessage ? <p className={`visual-composer__message visual-composer__message--${structureState}`}>{structureMessage}</p> : null}
               </details>

@@ -421,19 +421,58 @@
   padding-top: 12px;
 }
 
+.visual-composer__templatePanel,
+.visual-composer__blockLibrary {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border-top: 1px solid var(--theme-elevation-150);
+  padding-top: 12px;
+}
+
+.visual-composer__templatePanel summary,
+.visual-composer__blockLibrary summary {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.visual-composer__templatePanel summary > span,
+.visual-composer__blockLibrary summary > span,
+.visual-composer__libraryGroup > span {
+  color: var(--theme-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.visual-composer__templatePanel summary small,
+.visual-composer__blockLibrary summary small,
+.visual-composer__templatePanel label small {
+  color: var(--theme-elevation-550);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .visual-composer__insertBlock label {
   display: grid;
   gap: 6px;
 }
 
+.visual-composer__templatePanel label,
+.visual-composer__libraryGroup {
+  display: grid;
+  gap: 8px;
+}
+
 .visual-composer__insertBlock span,
+.visual-composer__templatePanel label > span,
 .visual-composer__structureNote {
   color: var(--theme-elevation-600);
   font-size: 12px;
   font-weight: 800;
 }
 
-.visual-composer__insertBlock select {
+.visual-composer__insertBlock select,
+.visual-composer__templatePanel select {
   width: 100%;
   border: 1px solid var(--theme-elevation-200);
   border-radius: 7px;
@@ -443,8 +482,67 @@
   padding: 9px 10px;
 }
 
-.visual-composer__insertBlock button {
+.visual-composer__insertBlock button,
+.visual-composer__templatePanel button {
   justify-self: start;
+}
+
+.visual-composer__templatePanel button,
+.visual-composer__libraryGroup button {
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.visual-composer__templatePanel button {
+  min-height: 34px;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 11px;
+}
+
+.visual-composer__libraryGroup > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.visual-composer__libraryGroup button {
+  display: grid;
+  gap: 4px;
+  min-height: 74px;
+  align-content: start;
+  padding: 10px;
+  text-align: left;
+}
+
+.visual-composer__libraryGroup button strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.visual-composer__libraryGroup button small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--theme-elevation-550);
+  font-size: 11px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.visual-composer__templatePanel button:hover,
+.visual-composer__libraryGroup button:hover {
+  border-color: var(--theme-success-500);
+}
+
+.visual-composer__templatePanel button:disabled,
+.visual-composer__libraryGroup button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .visual-composer__editor {

@@ -20,6 +20,8 @@ type LayoutAction =
   | { type: 'delete'; index: number }
   | { type: 'duplicate'; index: number }
   | { type: 'insert'; afterIndex?: number; blockType: string }
+  | { type: 'insertPreset'; afterIndex?: number; preset: string }
+  | { type: 'appendTemplate'; template: string }
   | { type: 'move'; fromIndex: number; toIndex: number }
   | { type: 'toggleHidden'; hidden: boolean; index: number }
 
@@ -138,6 +140,97 @@ const blockFactories: Record<string, () => PageBlock> = {
     theme: 'white',
     title: 'New testimonials section',
   }),
+  trustBar: () => ({
+    blockType: 'trustBar',
+    items: [
+      { title: 'Government' },
+      { title: 'Education' },
+      { title: 'Healthcare' },
+      { title: 'Nonprofit' },
+      { title: 'Private Sector' },
+    ],
+    layoutVariant: 'compact',
+    spacing: 'compact',
+    theme: 'soft',
+    title: 'Trusted across',
+  }),
+}
+
+const blockPresetFactories: Record<string, () => PageBlock> = {
+  contactPage: () => ({
+    blockType: 'contactForm',
+    contactItems: [
+      { icon: 'mail', label: 'Email', value: 'hello@plusmit.com' },
+      { icon: 'shield', label: 'Recovery line', value: 'Priority response for compromises' },
+      { icon: 'clock', label: 'Support', value: '24/7 help desk for managed clients' },
+    ],
+    layoutVariant: 'contact',
+    sectionId: 'contact',
+    spacing: 'spacious',
+    theme: 'splitDarkBlue',
+    title: "Let's talk about your IT operations.",
+  }),
+  landingCta: () => ({
+    blockType: 'ctaBanner',
+    primaryCta: { label: 'Request Assessment', url: '/request-assessment' },
+    spacing: 'spacious',
+    textAlign: 'center',
+    theme: 'white',
+    title: 'Ready to improve daily IT operations?',
+  }),
+  serviceLandingHero: () => ({
+    blockType: 'hero',
+    eyebrow: 'Service overview',
+    layoutVariant: 'centered',
+    mediaPosition: 'none',
+    primaryCta: { label: 'Request Assessment', url: '/request-assessment' },
+    secondaryCta: { label: 'View process', url: '#process' },
+    spacing: 'spacious',
+    textAlign: 'center',
+    theme: 'white',
+    title: 'Reliable technology support for focused operations.',
+  }),
+  solutionSplit: () => ({
+    blockType: 'imageText',
+    layoutVariant: 'split',
+    mediaPosition: 'right',
+    primaryCta: { label: 'Discuss this solution', url: '/contact' },
+    sectionId: 'solutions',
+    spacing: 'spacious',
+    theme: 'white',
+    title: 'A practical solution section',
+  }),
+}
+
+const pageTemplateFactories: Record<string, () => PageBlock[]> = {
+  contact: () => [
+    blockPresetFactories.contactPage(),
+    blockPresetFactories.landingCta(),
+  ],
+  landing: () => [
+    blockPresetFactories.serviceLandingHero(),
+    blockFactories.trustBar(),
+    blockFactories.servicesGrid(),
+    blockFactories.processTimeline(),
+    blockFactories.testimonials(),
+    blockPresetFactories.landingCta(),
+  ],
+  legal: () => [
+    {
+      blockType: 'richText',
+      body: 'Add policy copy here, then update SEO metadata before publishing.',
+      maxWidth: 'narrow',
+      spacing: 'spacious',
+      theme: 'white',
+      title: 'Policy title',
+    },
+  ],
+  service: () => [
+    blockPresetFactories.serviceLandingHero(),
+    blockFactories.processTimeline(),
+    blockFactories.faqAccordion(),
+    blockPresetFactories.landingCta(),
+  ],
 }
 
 function canUseAdminMutation(request: NextRequest) {
@@ -191,6 +284,8 @@ function isLayoutAction(value: unknown): value is LayoutAction {
   if (action.type === 'duplicate' || action.type === 'delete') return Number.isInteger(action.index)
   if (action.type === 'toggleHidden') return Number.isInteger(action.index) && typeof action.hidden === 'boolean'
   if (action.type === 'insert') return typeof action.blockType === 'string' && action.blockType in blockFactories
+  if (action.type === 'insertPreset') return typeof action.preset === 'string' && action.preset in blockPresetFactories
+  if (action.type === 'appendTemplate') return typeof action.template === 'string' && action.template in pageTemplateFactories
 
   return false
 }
@@ -238,6 +333,25 @@ function applyLayoutAction(layout: PageBlock[], action: LayoutAction) {
 
     selectedBlockIndex = clampIndex(Number.isInteger(action.afterIndex) ? Number(action.afterIndex) + 1 : nextLayout.length, nextLayout.length)
     nextLayout.splice(selectedBlockIndex, 0, createBlock())
+  }
+
+  if (action.type === 'insertPreset') {
+    const createBlock = blockPresetFactories[action.preset]
+    if (!createBlock) return { error: 'Unsupported block preset.' }
+
+    selectedBlockIndex = clampIndex(Number.isInteger(action.afterIndex) ? Number(action.afterIndex) + 1 : nextLayout.length, nextLayout.length)
+    nextLayout.splice(selectedBlockIndex, 0, createBlock())
+  }
+
+  if (action.type === 'appendTemplate') {
+    const createBlocks = pageTemplateFactories[action.template]
+    if (!createBlocks) return { error: 'Unsupported page template.' }
+
+    const createdBlocks = createBlocks()
+    if (!createdBlocks.length) return { error: 'Template has no blocks.' }
+
+    selectedBlockIndex = nextLayout.length
+    nextLayout.push(...createdBlocks)
   }
 
   return { layout: nextLayout, selectedBlockIndex }
