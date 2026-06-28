@@ -138,9 +138,21 @@ type ResponsivePreset = {
   label: string
   patch: NonNullable<PageBlock['design']>
 }
+type PageSettingsState = 'dirty' | 'error' | 'idle' | 'saving' | 'saved'
 type QualityCheck = {
   label: string
   ready: boolean
+}
+
+type PageSettingsDraft = {
+  noindex: boolean
+  openGraphDescription: string
+  openGraphTitle: string
+  sitemapInclude: boolean
+  status: string
+  title: string
+  seoDescription: string
+  seoTitle: string
 }
 
 type BlockLibraryItem = {
@@ -360,6 +372,19 @@ function getPageEditHref(id: number | string) {
 
 function getPagePreviewHref(id: number | string) {
   return adminPath(`/collections/pages/${id}/preview`)
+}
+
+function getPageSettingsDraft(page?: PageSummary | null): PageSettingsDraft {
+  return {
+    noindex: Boolean(page?.seo?.noindex),
+    openGraphDescription: page?.seo?.openGraphDescription || '',
+    openGraphTitle: page?.seo?.openGraphTitle || '',
+    sitemapInclude: page?.seo?.sitemapInclude !== false,
+    status: page?.status || 'draft',
+    title: page?.title || '',
+    seoDescription: page?.seo?.description || '',
+    seoTitle: page?.seo?.title || '',
+  }
 }
 
 function getSelectedPage(pages: PageSummary[], requestedId?: number | string) {
@@ -1094,6 +1119,9 @@ export function VisualComposerClient({
   const [mediaSearch, setMediaSearch] = useState('')
   const [mediaMessage, setMediaMessage] = useState('')
   const [mediaUploadState, setMediaUploadState] = useState<UploadState>('idle')
+  const [pageSettings, setPageSettings] = useState<PageSettingsDraft>(() => getPageSettingsDraft(getSelectedPage(initialPages, initialPageId)))
+  const [pageSettingsState, setPageSettingsState] = useState<PageSettingsState>('idle')
+  const [pageSettingsMessage, setPageSettingsMessage] = useState('')
   const [previewVersion, setPreviewVersion] = useState(0)
   const previewRef = useRef<HTMLIFrameElement>(null)
 
@@ -1141,6 +1169,9 @@ export function VisualComposerClient({
     setActiveInspectorTab('content')
     setStructureState('idle')
     setStructureMessage('')
+    setPageSettings(getPageSettingsDraft(page))
+    setPageSettingsState('idle')
+    setPageSettingsMessage('')
   }
 
   function selectBlock(block: PageBlock, index: number, preferredTab: InspectorTab = 'content') {
@@ -1166,7 +1197,16 @@ export function VisualComposerClient({
     setMessage('')
     setStructureState('success')
     setStructureMessage(notice)
+    setPageSettings(getPageSettingsDraft(updatedPage))
+    setPageSettingsState('idle')
+    setPageSettingsMessage('')
     setPreviewVersion((current) => current + 1)
+  }
+
+  function updatePageSetting<Key extends keyof PageSettingsDraft>(field: Key, value: PageSettingsDraft[Key]) {
+    setPageSettings((current) => ({ ...current, [field]: value }))
+    setPageSettingsState('dirty')
+    setPageSettingsMessage('Unsaved page settings.')
   }
 
   async function applyLayoutAction(action: LayoutAction, notice: string) {
@@ -1375,6 +1415,46 @@ export function VisualComposerClient({
     setPreviewVersion((current) => current + 1)
   }
 
+  async function savePageSettings() {
+    if (!selectedPage) return
+
+    setPageSettingsState('saving')
+    setPageSettingsMessage('')
+
+    const response = await fetch(`/api/visual-composer/pages/${selectedPage.id}/settings`, {
+      body: JSON.stringify({
+        seo: {
+          description: pageSettings.seoDescription,
+          noindex: pageSettings.noindex,
+          openGraphDescription: pageSettings.openGraphDescription,
+          openGraphTitle: pageSettings.openGraphTitle,
+          sitemapInclude: pageSettings.sitemapInclude,
+          title: pageSettings.seoTitle,
+        },
+        status: pageSettings.status,
+        title: pageSettings.title,
+      }),
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH',
+    })
+
+    const result = (await response.json().catch(() => null)) as { error?: string; page?: PageSummary } | null
+
+    if (!response.ok || !result?.page) {
+      setPageSettingsState('error')
+      setPageSettingsMessage(result?.error || 'Page settings could not be saved.')
+      return
+    }
+
+    setPages((current) => current.map((page) => (String(page.id) === String(result.page?.id) ? result.page as PageSummary : page)))
+    setSelectedPageId(result.page.id)
+    setPageSettings(getPageSettingsDraft(result.page))
+    setPageSettingsState('saved')
+    setPageSettingsMessage('Page settings saved. Preview refreshed.')
+    setPreviewVersion((current) => current + 1)
+  }
+
   function handlePreviewLoad() {
     const iframe = previewRef.current
     const doc = iframe?.contentDocument
@@ -1527,6 +1607,48 @@ export function VisualComposerClient({
                     <small>{selectedPage.seo?.openGraphDescription || selectedPage.seo?.description || 'No social description configured.'}</small>
                   </div>
                 </div>
+                <details className="visual-composer__pageSettings">
+                  <summary>
+                    <span>Quick page settings</span>
+                    <small>Title, status, and core SEO</small>
+                  </summary>
+                  <div className="visual-composer__fieldGrid">
+                    <TextField label="Page title" onChange={(value) => updatePageSetting('title', value)} value={pageSettings.title} />
+                    <label className="visual-composer__field">
+                      <span>Status</span>
+                      <select onChange={(event) => updatePageSetting('status', event.target.value)} value={pageSettings.status}>
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                      </select>
+                    </label>
+                  </div>
+                  <TextField label="SEO title" onChange={(value) => updatePageSetting('seoTitle', value)} value={pageSettings.seoTitle} />
+                  <TextAreaField label="Meta description" onChange={(value) => updatePageSetting('seoDescription', value)} value={pageSettings.seoDescription} />
+                  <TextField label="Open Graph title" onChange={(value) => updatePageSetting('openGraphTitle', value)} value={pageSettings.openGraphTitle} />
+                  <TextAreaField label="Open Graph description" onChange={(value) => updatePageSetting('openGraphDescription', value)} value={pageSettings.openGraphDescription} />
+                  <div className="visual-composer__pageSettingsToggles">
+                    <label>
+                      <input checked={pageSettings.sitemapInclude} onChange={(event) => updatePageSetting('sitemapInclude', event.target.checked)} type="checkbox" />
+                      <span>Include in sitemap</span>
+                    </label>
+                    <label>
+                      <input checked={pageSettings.noindex} onChange={(event) => updatePageSetting('noindex', event.target.checked)} type="checkbox" />
+                      <span>Noindex</span>
+                    </label>
+                  </div>
+                  <div className="visual-composer__pageSettingsActions">
+                    <button
+                      className="visual-composer__button visual-composer__button--primary"
+                      disabled={pageSettingsState === 'saving' || pageSettingsState === 'idle' || pageSettingsState === 'saved'}
+                      onClick={savePageSettings}
+                      type="button"
+                    >
+                      {pageSettingsState === 'saving' ? 'Saving...' : 'Save page settings'}
+                    </button>
+                    <Link href={getPageEditHref(selectedPage.id)}>Advanced edit</Link>
+                  </div>
+                  {pageSettingsMessage ? <p className={`visual-composer__message visual-composer__message--${pageSettingsState}`}>{pageSettingsMessage}</p> : null}
+                </details>
               </section>
               <details className="visual-composer__structure" open>
                 <summary>

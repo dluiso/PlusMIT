@@ -10,6 +10,7 @@ type PageDocument = {
   id: number | string
   layout?: PageBlock[]
   pageType?: string | null
+  seo?: Record<string, unknown> | null
   slug?: string
   status?: string
   title?: string
@@ -258,6 +259,7 @@ function normalizePage(doc: PageDocument): PageDocument {
     id: doc.id,
     layout: doc.layout || [],
     pageType: doc.pageType,
+    seo: doc.seo,
     slug: doc.slug,
     status: doc.status,
     title: doc.title,

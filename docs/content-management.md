@@ -20,7 +20,8 @@ Use **Website > Visual Composer** for page-level editing support:
 2. Click a section in the live preview or in Page structure.
 3. Review Publishing checklist, Social preview, and Block QA before saving.
 4. Use Content, Design, Media, Responsive, and Advanced tabs for controlled block updates.
-5. Save the selected block, then refresh or switch viewport to verify desktop, tablet, and mobile.
+5. Use Quick page settings for page title, publish status, core SEO, and sitemap/noindex checks.
+6. Save the selected block or page settings, then refresh or switch viewport to verify desktop, tablet, and mobile.
 
 The Composer is a safe editing layer over Payload page blocks. It does not replace the normal Payload editor; use **Advanced edit** when you need full SEO, status, slug, or relationship fields.
 
