@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { adminPath } from '@/lib/admin-route'
 
 type MediaReference = number | string | null | undefined
 type MediaFieldName = 'backgroundImage' | 'image'
 type MediaPanelMode = 'closed' | 'library' | 'upload'
+type InspectorTab = 'advanced' | 'content' | 'design' | 'media' | 'responsive'
 type StructureState = 'error' | 'idle' | 'saving' | 'success'
 
 type ComposerCardItem = {
@@ -157,6 +158,14 @@ const previewSizes = [
   { label: 'Desktop', width: 1280 },
   { label: 'Tablet', width: 820 },
   { label: 'Mobile', width: 390 },
+]
+
+const inspectorTabs: Array<{ id: InspectorTab; label: string }> = [
+  { id: 'content', label: 'Content' },
+  { id: 'design', label: 'Design' },
+  { id: 'media', label: 'Media' },
+  { id: 'responsive', label: 'Responsive' },
+  { id: 'advanced', label: 'Advanced' },
 ]
 
 const insertBlockOptions = [
@@ -769,7 +778,9 @@ export function VisualComposerClient({
     return page?.layout?.[0] ? cloneBlock(page.layout[0]) : null
   })
   const [saveState, setSaveState] = useState<SaveState>('idle')
+  const saveStateRef = useRef<SaveState>('idle')
   const [message, setMessage] = useState('')
+  const [activeInspectorTab, setActiveInspectorTab] = useState<InspectorTab>('content')
   const [structureState, setStructureState] = useState<StructureState>('idle')
   const [structureMessage, setStructureMessage] = useState('')
   const [newBlockType, setNewBlockType] = useState(insertBlockOptions[0].value)
@@ -780,6 +791,10 @@ export function VisualComposerClient({
   const [mediaUploadState, setMediaUploadState] = useState<UploadState>('idle')
   const [previewVersion, setPreviewVersion] = useState(0)
   const previewRef = useRef<HTMLIFrameElement>(null)
+
+  useEffect(() => {
+    saveStateRef.current = saveState
+  }, [saveState])
 
   const selectedPage = useMemo(() => getSelectedPage(pages, selectedPageId), [pages, selectedPageId])
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
@@ -795,21 +810,32 @@ export function VisualComposerClient({
   const structureActionsDisabled = structureBusy || hasUnsavedBlockChanges
   const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug, selectedBlockIndex, previewVersion)
 
+  function canLeaveCurrentBlock() {
+    if (saveStateRef.current !== 'dirty') return true
+    return window.confirm('You have unsaved changes in this block. Discard them and continue?')
+  }
+
   function selectPage(page: PageSummary) {
+    if (!canLeaveCurrentBlock()) return
+
     setSelectedPageId(page.id)
     setSelectedBlockIndex(0)
     setEditorBlock(page.layout?.[0] ? cloneBlock(page.layout[0]) : null)
     setSaveState('idle')
     setMessage('')
+    setActiveInspectorTab('content')
     setStructureState('idle')
     setStructureMessage('')
   }
 
   function selectBlock(block: PageBlock, index: number) {
+    if (index !== selectedBlockIndex && !canLeaveCurrentBlock()) return
+
     setSelectedBlockIndex(index)
     setEditorBlock(cloneBlock(block))
     setSaveState('idle')
     setMessage('')
+    setActiveInspectorTab('content')
     setStructureState('idle')
     setStructureMessage('')
   }
@@ -999,11 +1025,28 @@ export function VisualComposerClient({
     setPreviewVersion((current) => current + 1)
   }
 
-  function scrollPreviewToSelectedBlock() {
+  function handlePreviewLoad() {
     const iframe = previewRef.current
     const doc = iframe?.contentDocument
     const block = doc?.querySelector(`[data-composer-block="${selectedBlockIndex}"]`)
     block?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+    try {
+      doc?.querySelectorAll<HTMLElement>('[data-composer-block]').forEach((element) => {
+        const index = Number(element.dataset.composerBlock)
+        element.title = 'Click to edit this section in the Visual Composer'
+        element.style.cursor = 'pointer'
+        element.addEventListener('click', (event) => {
+          if (!selectedPage?.layout?.[index]) return
+
+          event.preventDefault()
+          event.stopPropagation()
+          selectBlock(selectedPage.layout[index], index)
+        })
+      })
+    } catch {
+      // Cross-origin previews can still be viewed; direct click selection is only enabled when same-origin access is available.
+    }
   }
 
   return (
@@ -1079,7 +1122,7 @@ export function VisualComposerClient({
                 <iframe
                   className="visual-composer__preview"
                   key={`${selectedPage.id}-${selectedPreviewSize}-${previewVersion}`}
-                  onLoad={scrollPreviewToSelectedBlock}
+                  onLoad={handlePreviewLoad}
                   ref={previewRef}
                   src={previewUrl}
                   style={{ width: selectedPreviewSize > 0 ? `${selectedPreviewSize}px` : '100%' }}
@@ -1210,139 +1253,28 @@ export function VisualComposerClient({
                       </div>
                     </section>
 
-                    <section className="visual-composer__mediaPanel" aria-label="Media controls">
-                      <div className="visual-composer__mediaHeader">
-                        <div>
-                          <span>Media</span>
-                          <small>Keep the current media visible, then replace it only when needed.</small>
-                        </div>
-                        <div>
-                          <button onClick={refreshMediaLibrary} type="button">
-                            Refresh
-                          </button>
-                        </div>
-                      </div>
-                      <div className="visual-composer__mediaTargets" role="group" aria-label="Media target">
-                        {showPrimaryImage ? (
-                          <button
-                            data-active={effectiveMediaField === 'image'}
-                            onClick={() => {
-                              setActiveMediaField('image')
-                              setMediaPanelMode('closed')
-                            }}
-                            type="button"
-                          >
-                            Main image
-                          </button>
-                        ) : null}
+                    <div className="visual-composer__tabs" role="tablist" aria-label="Inspector sections">
+                      {inspectorTabs.map((tab) => (
                         <button
-                          data-active={effectiveMediaField === 'backgroundImage'}
-                          onClick={() => {
-                            setActiveMediaField('backgroundImage')
-                            setMediaPanelMode('closed')
-                          }}
+                          aria-selected={activeInspectorTab === tab.id}
+                          data-active={activeInspectorTab === tab.id}
+                          key={tab.id}
+                          onClick={() => setActiveInspectorTab(tab.id)}
+                          role="tab"
                           type="button"
                         >
-                          {selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}
+                          {tab.label}
                         </button>
-                      </div>
-                      <div className="visual-composer__mediaLayoutControls">
-                        <SelectField
-                          label="Media position"
-                          onChange={(value) => updateBlockField('mediaPosition', value)}
-                          options={selectOptions.mediaPosition}
-                          value={editorBlock.mediaPosition}
-                        />
-                        <small>
-                          {selectedBlockType === 'hero'
-                            ? 'Use right for the dashboard image, background for a full hero background, or none to hide media.'
-                            : 'Use background to place the selected image behind the section, or none to hide media.'}
-                        </small>
-                      </div>
-                      <div className="visual-composer__mediaPreviewGrid">
-                        {showPrimaryImage ? (
-                          <MediaPreview
-                            label="Main image preview"
-                            mediaOptions={mediaOptions}
-                            onSelect={() => openMediaPanel('image', 'library')}
-                            value={editorBlock.image}
-                          />
-                        ) : null}
-                        <MediaPreview
-                          label={selectedBlockType === 'hero' ? 'Hero/background preview' : 'Background preview'}
-                          mediaOptions={mediaOptions}
-                          onSelect={() => openMediaPanel('backgroundImage', 'library')}
-                          value={editorBlock.backgroundImage}
-                        />
-                      </div>
-                      <div className="visual-composer__mediaActions">
-                        <div>
-                          <strong>{effectiveMediaField === 'image' ? 'Main image' : selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}</strong>
-                          <small>Select which media slot you want to replace, then choose a source.</small>
-                        </div>
-                        <div>
-                          <button onClick={() => setMediaPanelMode(mediaPanelMode === 'library' ? 'closed' : 'library')} type="button">
-                            Replace from library
-                          </button>
-                          <button onClick={() => setMediaPanelMode(mediaPanelMode === 'upload' ? 'closed' : 'upload')} type="button">
-                            Upload new
-                          </button>
-                        </div>
-                      </div>
-                      {mediaPanelMode === 'library' ? (
-                        <MediaLibrary
-                          activeField={effectiveMediaField}
-                          mediaOptions={mediaOptions}
-                          mediaSearch={mediaSearch}
-                          onChoose={chooseMedia}
-                          onClose={() => setMediaPanelMode('closed')}
-                          onSearch={setMediaSearch}
-                          selectedValue={effectiveMediaValue}
-                        />
-                      ) : null}
-                      {mediaPanelMode === 'upload' ? (
-                        <form className="visual-composer__uploadForm" onSubmit={uploadMedia}>
-                          <div>
-                            <strong>Upload and select</strong>
-                            <small>Images, SVG, GIF, and PDF use the same Media rules configured in Payload.</small>
-                          </div>
-                          <input accept="image/*,application/pdf" name="file" type="file" />
-                          <div className="visual-composer__uploadFields">
-                            <label>
-                              <span>Title</span>
-                              <input name="title" placeholder="Optional title" type="text" />
-                            </label>
-                            <label>
-                              <span>Alt text</span>
-                              <input name="alt" placeholder="Optional alt text" type="text" />
-                            </label>
-                          </div>
-                          <div className="visual-composer__uploadActions">
-                            <button
-                              className="visual-composer__button visual-composer__button--primary"
-                              disabled={mediaUploadState === 'uploading'}
-                              type="submit"
-                            >
-                              {mediaUploadState === 'uploading' ? 'Uploading...' : 'Upload and select'}
-                            </button>
-                            <button className="visual-composer__button" onClick={() => setMediaPanelMode('closed')} type="button">
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : null}
-                      {mediaMessage ? <p className={`visual-composer__message visual-composer__message--${mediaUploadState}`}>{mediaMessage}</p> : null}
-                    </section>
+                      ))}
+                    </div>
 
-                    <TextField label="Section ID" onChange={(value) => updateBlockField('sectionId', value)} value={editorBlock.sectionId} />
-                    <TextField label="Eyebrow" onChange={(value) => updateBlockField('eyebrow', value)} value={editorBlock.eyebrow} />
-                    <TextField label="Title" onChange={(value) => updateBlockField('title', value)} value={editorBlock.title} />
-                    <TextField label="Highlight text" onChange={(value) => updateBlockField('highlightText', value)} value={editorBlock.highlightText} />
-                    <TextAreaField label="Summary" onChange={(value) => updateBlockField('summary', value)} value={editorBlock.summary} />
+                    {activeInspectorTab === 'content' ? (
+                      <section className="visual-composer__tabPanel" role="tabpanel">
+                        <TextField label="Eyebrow" onChange={(value) => updateBlockField('eyebrow', value)} value={editorBlock.eyebrow} />
+                        <TextField label="Title" onChange={(value) => updateBlockField('title', value)} value={editorBlock.title} />
+                        <TextField label="Highlight text" onChange={(value) => updateBlockField('highlightText', value)} value={editorBlock.highlightText} />
+                        <TextAreaField label="Summary" onChange={(value) => updateBlockField('summary', value)} value={editorBlock.summary} />
 
-                    <details className="visual-composer__editorGroup" open>
-                      <summary>Block content</summary>
-                      <div>
                         {blockSupportsBody(selectedBlockType) ? (
                           <TextAreaField label="Body" onChange={(value) => updateBlockField('body', value)} value={editorBlock.body} />
                         ) : null}
@@ -1410,25 +1342,24 @@ export function VisualComposerClient({
                         {['industryCards', 'servicesGrid'].includes(selectedBlockType || '') ? (
                           <LinkGroupEditor label="View all CTA" onChange={(value) => updateBlockField('viewAllCta', value)} value={editorBlock.viewAllCta} />
                         ) : null}
-                      </div>
-                    </details>
+                      </section>
+                    ) : null}
 
-                    <div className="visual-composer__fieldGrid">
-                      <SelectField label="Theme" onChange={(value) => updateBlockField('theme', value)} options={selectOptions.theme} value={editorBlock.theme} />
-                      <SelectField
-                        label="Layout"
-                        onChange={(value) => updateBlockField('layoutVariant', value)}
-                        options={selectOptions.layoutVariant}
-                        value={editorBlock.layoutVariant}
-                      />
-                      <SelectField label="Text align" onChange={(value) => updateBlockField('textAlign', value)} options={selectOptions.textAlign} value={editorBlock.textAlign} />
-                      <SelectField label="Spacing" onChange={(value) => updateBlockField('spacing', value)} options={selectOptions.spacing} value={editorBlock.spacing} />
-                      <SelectField label="Max width" onChange={(value) => updateBlockField('maxWidth', value)} options={selectOptions.maxWidth} value={editorBlock.maxWidth} />
-                    </div>
-
-                    <details className="visual-composer__editorGroup" open>
-                      <summary>Typography and colors</summary>
-                      <div className="visual-composer__fieldGrid">
+                    {activeInspectorTab === 'design' ? (
+                      <section className="visual-composer__tabPanel" role="tabpanel">
+                        <div className="visual-composer__fieldGrid">
+                          <SelectField label="Theme" onChange={(value) => updateBlockField('theme', value)} options={selectOptions.theme} value={editorBlock.theme} />
+                          <SelectField
+                            label="Layout"
+                            onChange={(value) => updateBlockField('layoutVariant', value)}
+                            options={selectOptions.layoutVariant}
+                            value={editorBlock.layoutVariant}
+                          />
+                          <SelectField label="Text align" onChange={(value) => updateBlockField('textAlign', value)} options={selectOptions.textAlign} value={editorBlock.textAlign} />
+                          <SelectField label="Spacing" onChange={(value) => updateBlockField('spacing', value)} options={selectOptions.spacing} value={editorBlock.spacing} />
+                          <SelectField label="Max width" onChange={(value) => updateBlockField('maxWidth', value)} options={selectOptions.maxWidth} value={editorBlock.maxWidth} />
+                        </div>
+                        <div className="visual-composer__fieldGrid">
                         <SelectField label="Title size" onChange={(value) => updateDesignField('titleSize', value)} options={selectOptions.titleSize} value={editorBlock.design?.titleSize} />
                         <SelectField label="Summary size" onChange={(value) => updateDesignField('summarySize', value)} options={selectOptions.summarySize} value={editorBlock.design?.summarySize} />
                         <SelectField label="Eyebrow color" onChange={(value) => updateDesignField('eyebrowColor', value)} options={selectOptions.color} value={editorBlock.design?.eyebrowColor} />
@@ -1441,12 +1372,142 @@ export function VisualComposerClient({
                         />
                         <TextField label="Custom title color" onChange={(value) => updateDesignField('customTitleColor', value)} value={editorBlock.design?.customTitleColor} />
                         <TextField label="Custom summary color" onChange={(value) => updateDesignField('customSummaryColor', value)} value={editorBlock.design?.customSummaryColor} />
-                      </div>
-                    </details>
+                        {showCardControls ? (
+                          <>
+                            <SelectField label="Card density" onChange={(value) => updateDesignField('cardDensity', value)} options={selectOptions.cardDensity} value={editorBlock.design?.cardDensity} />
+                            <SelectField label="Card columns" onChange={(value) => updateDesignField('cardColumns', value)} options={selectOptions.cardColumns} value={editorBlock.design?.cardColumns} />
+                          </>
+                        ) : null}
+                        </div>
+                      </section>
+                    ) : null}
 
-                    <details className="visual-composer__editorGroup">
-                      <summary>Media display options</summary>
-                      <div className="visual-composer__fieldGrid">
+                    {activeInspectorTab === 'media' ? (
+                      <section className="visual-composer__tabPanel" role="tabpanel">
+                        <section className="visual-composer__mediaPanel" aria-label="Media controls">
+                          <div className="visual-composer__mediaHeader">
+                            <div>
+                              <span>Media</span>
+                              <small>Keep the current media visible, then replace it only when needed.</small>
+                            </div>
+                            <div>
+                              <button onClick={refreshMediaLibrary} type="button">
+                                Refresh
+                              </button>
+                            </div>
+                          </div>
+                          <div className="visual-composer__mediaTargets" role="group" aria-label="Media target">
+                            {showPrimaryImage ? (
+                              <button
+                                data-active={effectiveMediaField === 'image'}
+                                onClick={() => {
+                                  setActiveMediaField('image')
+                                  setMediaPanelMode('closed')
+                                }}
+                                type="button"
+                              >
+                                Main image
+                              </button>
+                            ) : null}
+                            <button
+                              data-active={effectiveMediaField === 'backgroundImage'}
+                              onClick={() => {
+                                setActiveMediaField('backgroundImage')
+                                setMediaPanelMode('closed')
+                              }}
+                              type="button"
+                            >
+                              {selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}
+                            </button>
+                          </div>
+                          <div className="visual-composer__mediaLayoutControls">
+                            <SelectField
+                              label="Media position"
+                              onChange={(value) => updateBlockField('mediaPosition', value)}
+                              options={selectOptions.mediaPosition}
+                              value={editorBlock.mediaPosition}
+                            />
+                            <small>
+                              {selectedBlockType === 'hero'
+                                ? 'Use right for the dashboard image, background for a full hero background, or none to hide media.'
+                                : 'Use background to place the selected image behind the section, or none to hide media.'}
+                            </small>
+                          </div>
+                          <div className="visual-composer__mediaPreviewGrid">
+                            {showPrimaryImage ? (
+                              <MediaPreview
+                                label="Main image preview"
+                                mediaOptions={mediaOptions}
+                                onSelect={() => openMediaPanel('image', 'library')}
+                                value={editorBlock.image}
+                              />
+                            ) : null}
+                            <MediaPreview
+                              label={selectedBlockType === 'hero' ? 'Hero/background preview' : 'Background preview'}
+                              mediaOptions={mediaOptions}
+                              onSelect={() => openMediaPanel('backgroundImage', 'library')}
+                              value={editorBlock.backgroundImage}
+                            />
+                          </div>
+                          <div className="visual-composer__mediaActions">
+                            <div>
+                              <strong>{effectiveMediaField === 'image' ? 'Main image' : selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}</strong>
+                              <small>Select which media slot you want to replace, then choose a source.</small>
+                            </div>
+                            <div>
+                              <button onClick={() => setMediaPanelMode(mediaPanelMode === 'library' ? 'closed' : 'library')} type="button">
+                                Replace from library
+                              </button>
+                              <button onClick={() => setMediaPanelMode(mediaPanelMode === 'upload' ? 'closed' : 'upload')} type="button">
+                                Upload new
+                              </button>
+                            </div>
+                          </div>
+                          {mediaPanelMode === 'library' ? (
+                            <MediaLibrary
+                              activeField={effectiveMediaField}
+                              mediaOptions={mediaOptions}
+                              mediaSearch={mediaSearch}
+                              onChoose={chooseMedia}
+                              onClose={() => setMediaPanelMode('closed')}
+                              onSearch={setMediaSearch}
+                              selectedValue={effectiveMediaValue}
+                            />
+                          ) : null}
+                          {mediaPanelMode === 'upload' ? (
+                            <form className="visual-composer__uploadForm" onSubmit={uploadMedia}>
+                              <div>
+                                <strong>Upload and select</strong>
+                                <small>Images, SVG, GIF, and PDF use the same Media rules configured in Payload.</small>
+                              </div>
+                              <input accept="image/*,application/pdf" name="file" type="file" />
+                              <div className="visual-composer__uploadFields">
+                                <label>
+                                  <span>Title</span>
+                                  <input name="title" placeholder="Optional title" type="text" />
+                                </label>
+                                <label>
+                                  <span>Alt text</span>
+                                  <input name="alt" placeholder="Optional alt text" type="text" />
+                                </label>
+                              </div>
+                              <div className="visual-composer__uploadActions">
+                                <button
+                                  className="visual-composer__button visual-composer__button--primary"
+                                  disabled={mediaUploadState === 'uploading'}
+                                  type="submit"
+                                >
+                                  {mediaUploadState === 'uploading' ? 'Uploading...' : 'Upload and select'}
+                                </button>
+                                <button className="visual-composer__button" onClick={() => setMediaPanelMode('closed')} type="button">
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          ) : null}
+                          {mediaMessage ? <p className={`visual-composer__message visual-composer__message--${mediaUploadState}`}>{mediaMessage}</p> : null}
+                        </section>
+                        <div className="visual-composer__fieldGrid">
                         <SelectField label="Media size" onChange={(value) => updateDesignField('mediaSize', value)} options={selectOptions.mediaSize} value={editorBlock.design?.mediaSize} />
                         <SelectField label="Media fit" onChange={(value) => updateDesignField('mediaFit', value)} options={selectOptions.mediaFit} value={editorBlock.design?.mediaFit} />
                         <SelectField
@@ -1463,18 +1524,14 @@ export function VisualComposerClient({
                         />
                         <SelectField label="Media frame" onChange={(value) => updateDesignField('mediaFrame', value)} options={selectOptions.mediaFrame} value={editorBlock.design?.mediaFrame} />
                         <SelectField label="Media padding" onChange={(value) => updateDesignField('mediaPadding', value)} options={selectOptions.mediaPadding} value={editorBlock.design?.mediaPadding} />
-                      </div>
-                    </details>
+                        </div>
+                      </section>
+                    ) : null}
 
-                    <details className="visual-composer__editorGroup">
-                      <summary>Cards and mobile</summary>
-                      <div className="visual-composer__fieldGrid">
-                        {showCardControls ? (
-                          <>
-                            <SelectField label="Card density" onChange={(value) => updateDesignField('cardDensity', value)} options={selectOptions.cardDensity} value={editorBlock.design?.cardDensity} />
-                            <SelectField label="Card columns" onChange={(value) => updateDesignField('cardColumns', value)} options={selectOptions.cardColumns} value={editorBlock.design?.cardColumns} />
-                          </>
-                        ) : null}
+                    {activeInspectorTab === 'responsive' ? (
+                      <section className="visual-composer__tabPanel" role="tabpanel">
+                        <p className="visual-composer__blockGuide">Responsive controls affect the selected block without duplicating desktop content.</p>
+                        <div className="visual-composer__fieldGrid">
                         <SelectField label="Mobile layout" onChange={(value) => updateDesignField('mobileLayout', value)} options={selectOptions.mobileLayout} value={editorBlock.design?.mobileLayout} />
                         <SelectField label="Mobile media" onChange={(value) => updateDesignField('mobileMedia', value)} options={selectOptions.mobileMedia} value={editorBlock.design?.mobileMedia} />
                         <SelectField label="Mobile spacing" onChange={(value) => updateDesignField('mobileSpacing', value)} options={selectOptions.mobileSpacing} value={editorBlock.design?.mobileSpacing} />
@@ -1484,8 +1541,18 @@ export function VisualComposerClient({
                           options={selectOptions.mobileCtaLayout}
                           value={editorBlock.design?.mobileCtaLayout}
                         />
-                      </div>
-                    </details>
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {activeInspectorTab === 'advanced' ? (
+                      <section className="visual-composer__tabPanel" role="tabpanel">
+                        <TextField label="Section ID" onChange={(value) => updateBlockField('sectionId', value)} value={editorBlock.sectionId} />
+                        <p className="visual-composer__blockGuide">
+                          Use Section ID for menu anchors like services, industries, solutions, or contact. Use Page structure for hide, move, duplicate, and delete.
+                        </p>
+                      </section>
+                    ) : null}
 
                     {message ? <p className={`visual-composer__message visual-composer__message--${saveState}`}>{message}</p> : null}
                   </div>
