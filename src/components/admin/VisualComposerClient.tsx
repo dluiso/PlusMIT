@@ -138,6 +138,10 @@ type ResponsivePreset = {
   label: string
   patch: NonNullable<PageBlock['design']>
 }
+type QualityCheck = {
+  label: string
+  ready: boolean
+}
 
 type BlockLibraryItem = {
   blockType?: string
@@ -718,6 +722,32 @@ function getSocialImage(mediaOptions: MediaOption[], page?: PageSummary | null) 
   return getMediaOption(mediaOptions, imageId)
 }
 
+function getBlockQualityChecks(block: PageBlock | null, mediaOptions: MediaOption[]): QualityCheck[] {
+  if (!block) return []
+
+  const primaryMedia = getMediaOption(mediaOptions, block.image)
+  const backgroundMedia = getMediaOption(mediaOptions, block.backgroundImage)
+  const activeMedia = block.mediaPosition === 'background' ? backgroundMedia : primaryMedia || backgroundMedia
+  const mediaWarnings = getMediaWarnings(activeMedia)
+  const hasTitle = Boolean(block.title?.trim())
+  const hasSummary = Boolean(block.summary?.trim() || block.body?.trim())
+  const hasCompletePrimaryCta = !block.primaryCta?.label && !block.primaryCta?.url ? true : Boolean(block.primaryCta?.label && block.primaryCta?.url)
+  const hasCompleteSecondaryCta = !block.secondaryCta?.label && !block.secondaryCta?.url ? true : Boolean(block.secondaryCta?.label && block.secondaryCta?.url)
+  const needsMedia = (block.blockType === 'hero' && block.mediaPosition !== 'none') || blockSupportsPrimaryImage(block.blockType)
+  const hasUsableMedia = !needsMedia || Boolean(activeMedia)
+
+  return [
+    { label: 'Visible on page', ready: !block.hidden },
+    { label: 'Title configured', ready: hasTitle },
+    { label: 'Supporting copy configured', ready: hasSummary || ['stats', 'trustBar'].includes(block.blockType || '') },
+    { label: 'Primary CTA complete', ready: hasCompletePrimaryCta },
+    { label: 'Secondary CTA complete', ready: hasCompleteSecondaryCta },
+    { label: 'Media selected when needed', ready: hasUsableMedia },
+    { label: 'Media accessibility/performance OK', ready: !mediaWarnings.length },
+    { label: 'Mobile layout reviewed', ready: Boolean(block.design?.mobileLayout || block.design?.mobileSpacing) },
+  ]
+}
+
 function MediaPreview({
   label,
   mediaOptions,
@@ -1078,6 +1108,8 @@ export function VisualComposerClient({
   const publishReadyCount = publishChecks.filter((check) => check.ready).length
   const socialImage = useMemo(() => getSocialImage(mediaOptions, selectedPage), [mediaOptions, selectedPage])
   const socialImageUrl = getMediaPreviewUrl(socialImage)
+  const selectedBlockChecks = useMemo(() => getBlockQualityChecks(editorBlock, mediaOptions), [editorBlock, mediaOptions])
+  const selectedBlockReadyCount = selectedBlockChecks.filter((check) => check.ready).length
   const selectedBlockPresets = getBlockPresets(selectedBlockType)
   const selectedCardArrayConfig = getCardArrayConfig(selectedBlockType)
   const showCardControls = blockSupportsCards(selectedBlockType)
@@ -1625,6 +1657,21 @@ export function VisualComposerClient({
 
                 {editorBlock ? (
                   <div className="visual-composer__form">
+                    <section className="visual-composer__qualityPanel" aria-label="Selected block quality checks">
+                      <div className="visual-composer__qualityHeader">
+                        <strong>Block QA</strong>
+                        <small>
+                          {selectedBlockReadyCount}/{selectedBlockChecks.length} ready
+                        </small>
+                      </div>
+                      <div className="visual-composer__checkList">
+                        {selectedBlockChecks.map((check) => (
+                          <span data-ready={check.ready} key={check.label}>
+                            {check.label}
+                          </span>
+                        ))}
+                      </div>
+                    </section>
                     <section className="visual-composer__presetGroup" aria-label="Section presets">
                       <p className="visual-composer__blockGuide">{getBlockGuide(selectedBlockType)}</p>
                       <span>Quick presets</span>

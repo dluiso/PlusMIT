@@ -190,6 +190,24 @@ function hasRelationshipValue(value: unknown) {
 function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
   const publishedPages = pages.filter((page) => page.status === 'published')
   const pagesWithSocialImage = publishedPages.filter((page) => hasRelationshipValue(page.seo?.openGraphImage) || hasRelationshipValue(page.seo?.twitterImage))
+  const layoutIssues = pages
+    .map((page) => {
+      const visibleBlocks = (page.layout || []).filter((block) => !block.hidden)
+      const issues = [
+        visibleBlocks.length ? null : 'no visible blocks',
+        visibleBlocks.some((block) => block.blockType === 'hero' || block.title) ? null : 'missing hero/title section',
+        visibleBlocks.some((block) => block.blockType === 'contactForm' || block.blockType === 'ctaBanner') ? null : 'missing conversion section',
+      ].filter(Boolean)
+
+      return issues.length
+        ? {
+            href: `${adminPath('/collections/pages')}/${page.id}`,
+            issues: issues.join(', '),
+            title: page.title || page.slug || 'Untitled page',
+          }
+        : null
+    })
+    .filter((issue): issue is { href: string; issues: string; title: string } => Boolean(issue))
   const seoIssues = publishedPages
     .map((page) => {
       const seoTitle = page.seo?.title?.trim()
@@ -223,6 +241,7 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
 
   return {
     largeMedia,
+    layoutIssues,
     mediaMissingAlt,
     nonImageMedia,
     publishedPages,
@@ -330,7 +349,19 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
             <div><span>Draft pages</span><strong>{draftPages}</strong></div>
             <div><span>Published services</span><strong>{publishedServices}</strong></div>
             <div><span>New leads</span><strong>{newLeads}</strong></div>
+            <div><span>Layout issues</span><strong>{contentInsights.layoutIssues.length}</strong></div>
+            <div><span>SEO issues</span><strong>{contentInsights.seoIssues.length}</strong></div>
           </div>
+          {contentInsights.layoutIssues.length ? (
+            <div className="plusmit-dashboard__watchList plusmit-dashboard__watchList--compact">
+              {contentInsights.layoutIssues.slice(0, 3).map((issue) => (
+                <Link href={issue.href} key={issue.href}>
+                  <strong>{issue.title}</strong>
+                  <span>{issue.issues}</span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="plusmit-dashboard__panel">

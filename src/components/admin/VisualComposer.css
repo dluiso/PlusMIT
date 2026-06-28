@@ -415,6 +415,34 @@
   white-space: nowrap;
 }
 
+.visual-composer__qualityPanel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  padding: 11px;
+}
+
+.visual-composer__qualityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.visual-composer__qualityHeader strong {
+  color: var(--theme-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.visual-composer__qualityHeader small {
+  color: var(--theme-elevation-550);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .visual-composer__structure {
   box-shadow: none;
 }
