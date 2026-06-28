@@ -360,6 +360,62 @@
   border-color: var(--theme-success-500);
 }
 
+.visual-composer__mediaPanel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--theme-success-500);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  padding: 12px;
+}
+
+.visual-composer__mediaHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.visual-composer__mediaHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.visual-composer__mediaHeader > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.visual-composer__mediaHeader span {
+  color: var(--theme-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.visual-composer__mediaHeader small {
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.visual-composer__mediaHeader a {
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 999px;
+  color: var(--theme-text);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  text-decoration: none;
+}
+
+.visual-composer__mediaHeader a:first-child {
+  border-color: transparent;
+  background: var(--theme-success-500);
+  color: var(--theme-bg);
+}
+
 .visual-composer__fieldGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

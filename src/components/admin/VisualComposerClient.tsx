@@ -270,19 +270,23 @@ function MediaField({
   onChange: (value: string | null) => void
   value?: MediaReference
 }) {
+  const currentValueIsListed = value ? mediaOptions.some((media) => String(media.id) === String(value)) : true
+
   return (
-    <label className="visual-composer__field">
+    <div className="visual-composer__field">
       <span>{label}</span>
       <select onChange={(event) => onChange(event.target.value || null)} value={value ? String(value) : ''}>
         <option value="">No media selected</option>
+        {!currentValueIsListed && value ? <option value={String(value)}>{`Current media ${value}`}</option> : null}
         {mediaOptions.map((media) => (
           <option key={media.id} value={media.id}>
             {media.title || media.alt || media.filename || `Media ${media.id}`}
           </option>
         ))}
       </select>
+      {mediaOptions.length ? null : <small>No media assets found. Upload one first, then return here to select it.</small>}
       {help ? <small>{help}</small> : null}
-    </label>
+    </div>
   )
 }
 
@@ -651,6 +655,51 @@ export function VisualComposerClient({
                       </div>
                     </section>
 
+                    <section className="visual-composer__mediaPanel" aria-label="Media controls">
+                      <div className="visual-composer__mediaHeader">
+                        <div>
+                          <span>Media</span>
+                          <small>Replace images from the Media library or upload a new asset.</small>
+                        </div>
+                        <div>
+                          <Link href={adminPath('/collections/media/create')} rel="noreferrer" target="_blank">
+                            Upload
+                          </Link>
+                          <Link href={adminPath('/collections/media')} rel="noreferrer" target="_blank">
+                            Library
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="visual-composer__fieldGrid">
+                        {showPrimaryImage ? (
+                          <MediaField
+                            help="Used as the main visual for split/image sections."
+                            label="Replace main image"
+                            mediaOptions={mediaOptions}
+                            onChange={(value) => updateBlockField('image', value)}
+                            value={editorBlock.image}
+                          />
+                        ) : null}
+                        <MediaField
+                          help={
+                            selectedBlockType === 'hero'
+                              ? 'Use Media position = right for the dashboard image, or background for a full section background.'
+                              : 'Use Media position = background to show this behind the whole section.'
+                          }
+                          label={selectedBlockType === 'hero' ? 'Replace hero / background image' : 'Replace background image'}
+                          mediaOptions={mediaOptions}
+                          onChange={(value) => updateBlockField('backgroundImage', value)}
+                          value={editorBlock.backgroundImage}
+                        />
+                        <SelectField
+                          label="Media position"
+                          onChange={(value) => updateBlockField('mediaPosition', value)}
+                          options={selectOptions.mediaPosition}
+                          value={editorBlock.mediaPosition}
+                        />
+                      </div>
+                    </section>
+
                     <TextField label="Section ID" onChange={(value) => updateBlockField('sectionId', value)} value={editorBlock.sectionId} />
                     <TextField label="Eyebrow" onChange={(value) => updateBlockField('eyebrow', value)} value={editorBlock.eyebrow} />
                     <TextField label="Title" onChange={(value) => updateBlockField('title', value)} value={editorBlock.title} />
@@ -688,35 +737,9 @@ export function VisualComposerClient({
                       </div>
                     </details>
 
-                    <details className="visual-composer__editorGroup" open>
-                      <summary>Media</summary>
+                    <details className="visual-composer__editorGroup">
+                      <summary>Media display options</summary>
                       <div className="visual-composer__fieldGrid">
-                        {showPrimaryImage ? (
-                          <MediaField
-                            help="Used as the main visual for split/image sections."
-                            label="Main image"
-                            mediaOptions={mediaOptions}
-                            onChange={(value) => updateBlockField('image', value)}
-                            value={editorBlock.image}
-                          />
-                        ) : null}
-                        <MediaField
-                          help={
-                            selectedBlockType === 'hero'
-                              ? 'Use Media position = right for the dashboard image, or background for a full section background.'
-                              : 'Use Media position = background to show this behind the whole section.'
-                          }
-                          label={selectedBlockType === 'hero' ? 'Hero / background image' : 'Background image'}
-                          mediaOptions={mediaOptions}
-                          onChange={(value) => updateBlockField('backgroundImage', value)}
-                          value={editorBlock.backgroundImage}
-                        />
-                        <SelectField
-                          label="Media position"
-                          onChange={(value) => updateBlockField('mediaPosition', value)}
-                          options={selectOptions.mediaPosition}
-                          value={editorBlock.mediaPosition}
-                        />
                         <SelectField label="Media size" onChange={(value) => updateDesignField('mediaSize', value)} options={selectOptions.mediaSize} value={editorBlock.design?.mediaSize} />
                         <SelectField label="Media fit" onChange={(value) => updateDesignField('mediaFit', value)} options={selectOptions.mediaFit} value={editorBlock.design?.mediaFit} />
                         <SelectField
