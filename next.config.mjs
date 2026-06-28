@@ -25,7 +25,7 @@ const csp = [
     'https://region1.google-analytics.com',
     'https://challenges.cloudflare.com',
   ].join(' '),
-  "frame-src https://challenges.cloudflare.com",
+  "frame-src 'self' https://challenges.cloudflare.com",
   "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",

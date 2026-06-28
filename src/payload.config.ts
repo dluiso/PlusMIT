@@ -21,6 +21,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     components: {
+      afterNavLinks: ['@/components/admin/AdminNavShortcuts#AdminNavShortcuts'],
       views: {
         dashboard: {
           Component: '@/components/admin/PlusMITDashboard#PlusMITDashboard',

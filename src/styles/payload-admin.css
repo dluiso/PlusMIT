@@ -65,6 +65,35 @@ body {
   border-radius: var(--plusmit-admin-radius);
 }
 
+.plusmit-admin-shortcuts {
+  margin: 12px 8px 16px;
+}
+
+.plusmit-admin-shortcuts__label {
+  margin: 0 0 6px;
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.plusmit-admin-shortcuts__links {
+  display: grid;
+  gap: 4px;
+}
+
+.plusmit-admin-shortcuts__links a {
+  display: block;
+  border-radius: var(--plusmit-admin-radius);
+  color: var(--theme-text);
+  font-weight: 700;
+  padding: 8px 10px;
+  text-decoration: none;
+}
+
+.plusmit-admin-shortcuts__links a:hover {
+  background: var(--theme-elevation-100);
+}
+
 .card,
 .collection-card,
 .dashboard__card {
