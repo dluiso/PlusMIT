@@ -66,7 +66,9 @@ body {
 }
 
 .plusmit-admin-shortcuts {
-  margin: 12px 8px 16px;
+  margin: 0 8px 14px;
+  border-bottom: 1px solid var(--theme-elevation-150);
+  padding-bottom: 12px;
 }
 
 .plusmit-admin-shortcuts__label {

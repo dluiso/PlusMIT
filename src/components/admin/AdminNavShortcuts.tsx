@@ -9,7 +9,7 @@ const shortcuts = [
 export function AdminNavShortcuts() {
   return (
     <div className="plusmit-admin-shortcuts" aria-label="PlusMIT admin shortcuts">
-      <p className="plusmit-admin-shortcuts__label">Workspace</p>
+      <p className="plusmit-admin-shortcuts__label">Website Tools</p>
       <nav className="plusmit-admin-shortcuts__links">
         {shortcuts.map((shortcut) => (
           <Link href={shortcut.href} key={shortcut.href}>
