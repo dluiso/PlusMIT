@@ -1031,6 +1031,12 @@ h4 {
     gap: 1.45rem;
   }
 
+  .hero-grid > *,
+  .split-section > *,
+  .contact-grid > * {
+    min-width: 0;
+  }
+
   .section-eyebrow {
     margin-bottom: 0.65rem;
     font-size: 0.68rem;
@@ -1055,6 +1061,13 @@ h4 {
   .hero-title--large,
   .hero-title--display {
     font-size: clamp(2.15rem, 10vw, 3.15rem);
+  }
+
+  .mobile-title--display .hero-title,
+  .mobile-title--large .hero-title,
+  .mobile-title--display .section-title,
+  .mobile-title--large .section-title {
+    line-height: 1.04;
   }
 
   .section-title--small,
@@ -1142,11 +1155,15 @@ h4 {
   }
 
   .mobile-media--hide .dashboard-visual,
-  .mobile-media--hide .media-panel {
+  .mobile-media--hide .media-panel,
+  .mobile-media--hide .section-bg-image,
+  .mobile-media--hide .section-bg-overlay {
     display: none;
   }
 
   .dashboard-visual {
+    width: 100%;
+    max-width: 100%;
     min-height: 0;
     padding: 0.9rem;
     border-radius: var(--radius-ui);
@@ -1186,6 +1203,14 @@ h4 {
   .modern-card {
     min-height: 0;
     padding: 1.05rem;
+  }
+
+  .mobile-card-density--compact .modern-card {
+    padding: 0.95rem;
+  }
+
+  .mobile-card-density--compact .modern-card-grid {
+    gap: 0.8rem;
   }
 
   .modern-card-grid--spacious .modern-card {

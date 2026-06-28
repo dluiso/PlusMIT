@@ -40,6 +40,7 @@ const allowedGroupFields = new Set(['primaryCta', 'secondaryCta', 'viewAllCta'])
 const allowedCardArrayFields = new Set(['items', 'options', 'rows', 'steps'])
 const allowedStatArrayFields = new Set(['badges', 'stats'])
 const allowedContactArrayFields = new Set(['contactItems'])
+const allowedTextArrayFields = new Set(['technologies'])
 
 const allowedDesignFields = new Set([
   'cardColumns',
@@ -145,6 +146,18 @@ function sanitizeContactItems(value: unknown) {
   })
 }
 
+function sanitizeTextItems(value: unknown) {
+  if (!Array.isArray(value)) return undefined
+
+  return value.slice(0, 24).map((item) => {
+    if (!isPlainObject(item)) return {}
+
+    return {
+      text: sanitizeStringValue(item.text),
+    }
+  })
+}
+
 function sanitizeBlockPatch(value: unknown) {
   if (!isPlainObject(value)) return null
 
@@ -179,6 +192,10 @@ function sanitizeBlockPatch(value: unknown) {
 
     if (allowedContactArrayFields.has(key)) {
       patch[key] = sanitizeContactItems(fieldValue)
+    }
+
+    if (allowedTextArrayFields.has(key)) {
+      patch[key] = sanitizeTextItems(fieldValue)
     }
   }
 

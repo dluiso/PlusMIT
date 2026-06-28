@@ -260,6 +260,16 @@ const responsivePresets: ResponsivePreset[] = [
     label: 'Text only mobile',
     patch: { mobileCtaLayout: 'stack', mobileLayout: 'textFirst', mobileMedia: 'hide', mobileSpacing: 'compact' },
   },
+  {
+    description: 'Safer typography and tighter copy flow for long headlines.',
+    label: 'Long headline safe',
+    patch: { mobileCtaLayout: 'stack', mobileLayout: 'textFirst', mobileMedia: 'show', mobileSpacing: 'compact', summarySize: 'small', titleSize: 'medium' },
+  },
+  {
+    description: 'Compact cards and spacing for dense repeated content.',
+    label: 'Dense cards mobile',
+    patch: { cardDensity: 'compact', mobileCtaLayout: 'stack', mobileLayout: 'stack', mobileMedia: 'show', mobileSpacing: 'compact' },
+  },
 ]
 
 const insertBlockOptions = [
@@ -976,6 +986,23 @@ function getBlockQualityChecks(block: PageBlock | null, mediaOptions: MediaOptio
   ]
 }
 
+function getResponsiveChecks(block: PageBlock | null, supportsMedia: boolean, supportsCtas: boolean, supportsCards: boolean): QualityCheck[] {
+  if (!block) return []
+
+  const design = block.design || {}
+  const titleLength = block.title?.trim().length || 0
+  const longDisplayTitle = titleLength > 68 && ['large', 'display'].includes(design.titleSize || '')
+
+  return [
+    { label: 'Mobile layout selected', ready: Boolean(design.mobileLayout && design.mobileLayout !== 'inherit') },
+    { label: 'Mobile spacing selected', ready: Boolean(design.mobileSpacing) },
+    { label: 'Long headline protected', ready: !longDisplayTitle },
+    ...(supportsMedia ? [{ label: 'Mobile media reviewed', ready: Boolean(design.mobileMedia) }] : []),
+    ...(supportsCtas ? [{ label: 'Mobile CTA behavior selected', ready: Boolean(design.mobileCtaLayout) }] : []),
+    ...(supportsCards ? [{ label: 'Card density reviewed', ready: Boolean(design.cardDensity) }] : []),
+  ]
+}
+
 function MediaPreview({
   label,
   mediaOptions,
@@ -1430,6 +1457,11 @@ export function VisualComposerClient({
   const showPrimaryImage = blockSupportsPrimaryImage(selectedBlockType)
   const showCtaControls = blockSupportsCtas(selectedBlockType)
   const showResponsiveMedia = blockSupportsResponsiveMedia(selectedBlockType)
+  const responsiveChecks = useMemo(
+    () => getResponsiveChecks(editorBlock, showResponsiveMedia, showCtaControls, showCardControls),
+    [editorBlock, showCardControls, showCtaControls, showResponsiveMedia],
+  )
+  const responsiveReadyCount = responsiveChecks.filter((check) => check.ready).length
   const visibleInspectorTabs = useMemo(() => getVisibleInspectorTabs(selectedBlockType), [selectedBlockType])
   const currentInspectorTab = visibleInspectorTabs.some((tab) => tab.id === activeInspectorTab) ? activeInspectorTab : 'content'
   const effectiveMediaField: MediaFieldName = showPrimaryImage ? activeMediaField : 'backgroundImage'
@@ -2505,9 +2537,25 @@ export function VisualComposerClient({
                             </button>
                           </div>
                         </div>
+                        <div className="visual-composer__responsiveAudit">
+                          <div>
+                            <strong>Responsive readiness</strong>
+                            <small>
+                              {responsiveReadyCount}/{responsiveChecks.length} checks ready
+                            </small>
+                          </div>
+                          <div className="visual-composer__checkList">
+                            {responsiveChecks.map((check) => (
+                              <span data-ready={check.ready} key={check.label}>
+                                {check.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                         <div className="visual-composer__responsivePresets">
                           {responsivePresets
                             .filter((preset) => showResponsiveMedia || preset.patch.mobileMedia !== 'hide')
+                            .filter((preset) => showCardControls || preset.label !== 'Dense cards mobile')
                             .map((preset) => (
                               <button key={preset.label} onClick={() => applyResponsivePreset(preset)} type="button">
                                 <strong>{preset.label}</strong>

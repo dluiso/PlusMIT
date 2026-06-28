@@ -19,7 +19,7 @@ Use **Website > Visual Composer** for page-level editing support:
 1. Select a page from the page selector.
 2. Click a section in the live preview or in Page structure.
 3. Review Publishing checklist, Social preview, and Block QA before saving.
-4. Use Content, Design, Media, Responsive, and Advanced tabs for controlled block updates.
+4. Use Content, Design, Media, Responsive, and Advanced tabs for controlled block updates. The Responsive tab includes readiness checks and safe presets for mobile order, media, CTAs, spacing, and dense card sections.
 5. Use Quick page settings for page title, slug, publish status, SEO metadata, social images, sitemap, schema, and noindex/nofollow checks. The Composer shows SEO health, search preview, and social preview before saving.
 6. Use collection source panels to jump from FAQ, resources, services, industries, and testimonials blocks into the right Payload collection when the block is collection-fed.
 7. Save the selected block or page settings, then refresh or switch viewport to verify desktop, tablet, and mobile.

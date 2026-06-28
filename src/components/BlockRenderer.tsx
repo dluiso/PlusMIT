@@ -146,6 +146,8 @@ function sectionClass(block: AnyBlock) {
     `mobile-media--${design.mobileMedia || 'show'}`,
     `mobile-spacing--${design.mobileSpacing || 'standard'}`,
     `mobile-cta--${design.mobileCtaLayout || 'stack'}`,
+    `mobile-title--${design.titleSize || 'auto'}`,
+    `mobile-card-density--${design.cardDensity || 'comfortable'}`,
   )
 }
 
