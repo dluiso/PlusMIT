@@ -29,6 +29,8 @@ const allowedTopLevelFields = new Set([
   'title',
 ])
 
+const allowedRelationshipFields = new Set(['backgroundImage', 'image'])
+
 const allowedDesignFields = new Set([
   'cardColumns',
   'cardDensity',
@@ -64,6 +66,14 @@ function sanitizeStringValue(value: unknown) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function sanitizeRelationshipValue(value: unknown) {
+  if (typeof value === 'number') return value
+  if (typeof value !== 'string') return undefined
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
 function sanitizeBlockPatch(value: unknown) {
   if (!isPlainObject(value)) return null
 
@@ -72,6 +82,10 @@ function sanitizeBlockPatch(value: unknown) {
   for (const [key, fieldValue] of Object.entries(value)) {
     if (allowedTopLevelFields.has(key)) {
       patch[key] = sanitizeStringValue(fieldValue)
+    }
+
+    if (allowedRelationshipFields.has(key)) {
+      patch[key] = sanitizeRelationshipValue(fieldValue)
     }
   }
 

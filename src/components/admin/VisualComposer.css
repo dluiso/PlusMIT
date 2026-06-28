@@ -319,9 +319,45 @@
 .visual-composer__form,
 .visual-composer__field,
 .visual-composer__editorGroup,
-.visual-composer__editorGroup > div {
+.visual-composer__editorGroup > div,
+.visual-composer__presetGroup {
   display: grid;
   gap: 12px;
+}
+
+.visual-composer__presetGroup {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  padding: 12px;
+}
+
+.visual-composer__presetGroup > span {
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.visual-composer__presetGroup > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.visual-composer__presetGroup button {
+  min-height: 34px;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--theme-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+.visual-composer__presetGroup button:hover {
+  border-color: var(--theme-success-500);
 }
 
 .visual-composer__fieldGrid {
@@ -373,6 +409,7 @@
   color: #ef4444;
 }
 
+.visual-composer__message--dirty,
 .visual-composer__message--saved {
   border-color: var(--theme-success-500);
 }

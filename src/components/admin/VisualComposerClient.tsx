@@ -4,10 +4,14 @@ import Link from 'next/link'
 import { useMemo, useRef, useState } from 'react'
 import { adminPath } from '@/lib/admin-route'
 
+type MediaReference = number | string | null | undefined
+
 export type PageBlock = {
+  backgroundImage?: MediaReference
   blockType?: string
   eyebrow?: string | null
   highlightText?: string | null
+  image?: MediaReference
   layoutVariant?: string | null
   maxWidth?: string | null
   mediaPosition?: string | null
@@ -53,9 +57,18 @@ export type PageSummary = {
   updatedAt?: string
 }
 
+export type MediaOption = {
+  alt?: string | null
+  filename?: string | null
+  id: number | string
+  title?: string | null
+  updatedAt?: string
+}
+
 type VisualComposerClientProps = {
   initialPageId?: number | string
   initialViewport: number
+  mediaOptions: MediaOption[]
   pages: PageSummary[]
   siteUrl: string
 }
@@ -94,6 +107,19 @@ const previewSizes = [
   { label: 'Tablet', width: 820 },
   { label: 'Mobile', width: 390 },
 ]
+
+const cardBlockTypes = new Set([
+  'featureCards',
+  'industryCards',
+  'mobileAppPreview',
+  'pricingOptions',
+  'resourceList',
+  'servicesGrid',
+  'testimonials',
+  'trustBar',
+])
+
+const primaryImageBlockTypes = new Set(['imageText', 'smartfiche', 'splitHero'])
 
 const selectOptions = {
   cardColumns: ['auto', 'two', 'three', 'four'],
@@ -231,9 +257,155 @@ function TextAreaField({
   )
 }
 
+function MediaField({
+  label,
+  mediaOptions,
+  onChange,
+  value,
+}: {
+  label: string
+  mediaOptions: MediaOption[]
+  onChange: (value: string | null) => void
+  value?: MediaReference
+}) {
+  return (
+    <label className="visual-composer__field">
+      <span>{label}</span>
+      <select onChange={(event) => onChange(event.target.value || null)} value={value ? String(value) : ''}>
+        <option value="">No media selected</option>
+        {mediaOptions.map((media) => (
+          <option key={media.id} value={media.id}>
+            {media.title || media.alt || media.filename || `Media ${media.id}`}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function blockSupportsCards(blockType?: string) {
+  return blockType ? cardBlockTypes.has(blockType) : false
+}
+
+function blockSupportsPrimaryImage(blockType?: string) {
+  return blockType ? primaryImageBlockTypes.has(blockType) : false
+}
+
+function getBlockPresets(blockType?: string) {
+  const base = [
+    {
+      label: 'Clean section',
+      patch: {
+        maxWidth: 'standard',
+        spacing: 'standard',
+        textAlign: 'left',
+        theme: 'white',
+        design: { titleSize: 'medium', summarySize: 'medium', mobileLayout: 'stack' },
+      },
+    },
+    {
+      label: 'Centered compact',
+      patch: {
+        maxWidth: 'narrow',
+        mediaPosition: 'none',
+        spacing: 'compact',
+        textAlign: 'center',
+        theme: 'white',
+        design: { summarySize: 'medium', titleSize: 'medium', mobileLayout: 'stack' },
+      },
+    },
+  ]
+
+  if (blockType === 'hero') {
+    return [
+      {
+        label: 'Hero dashboard',
+        patch: {
+          layoutVariant: 'dashboard',
+          maxWidth: 'standard',
+          mediaPosition: 'right',
+          spacing: 'spacious',
+          textAlign: 'left',
+          theme: 'white',
+          design: { mediaAspectRatio: 'wide', mediaFit: 'cover', mediaFrame: 'card', mobileLayout: 'textFirst', titleSize: 'large' },
+        },
+      },
+      {
+        label: 'Hero centered',
+        patch: {
+          layoutVariant: 'centered',
+          maxWidth: 'narrow',
+          mediaPosition: 'none',
+          spacing: 'spacious',
+          textAlign: 'center',
+          theme: 'white',
+          design: { mobileLayout: 'stack', titleSize: 'large' },
+        },
+      },
+    ]
+  }
+
+  if (blockSupportsCards(blockType)) {
+    return [
+      {
+        label: 'Cards 3 columns',
+        patch: {
+          maxWidth: 'standard',
+          spacing: 'standard',
+          textAlign: 'left',
+          theme: 'white',
+          design: { cardColumns: 'three', cardDensity: 'comfortable', titleSize: 'medium' },
+        },
+      },
+      {
+        label: 'Cards 4 compact',
+        patch: {
+          maxWidth: 'wide',
+          spacing: 'standard',
+          textAlign: 'left',
+          theme: 'white',
+          design: { cardColumns: 'four', cardDensity: 'compact', titleSize: 'medium' },
+        },
+      },
+    ]
+  }
+
+  if (blockSupportsPrimaryImage(blockType)) {
+    return [
+      {
+        label: 'Media right',
+        patch: {
+          layoutVariant: 'split',
+          maxWidth: 'wide',
+          mediaPosition: 'right',
+          spacing: 'spacious',
+          textAlign: 'left',
+          theme: 'splitDarkBlue',
+          design: { mediaAspectRatio: 'wide', mediaFit: 'contain', mediaFrame: 'card', mediaPadding: 'medium', mobileLayout: 'textFirst' },
+        },
+      },
+      {
+        label: 'Media left',
+        patch: {
+          layoutVariant: 'split',
+          maxWidth: 'wide',
+          mediaPosition: 'left',
+          spacing: 'spacious',
+          textAlign: 'left',
+          theme: 'white',
+          design: { mediaAspectRatio: 'wide', mediaFit: 'cover', mediaFrame: 'card', mobileLayout: 'mediaFirst' },
+        },
+      },
+    ]
+  }
+
+  return base
+}
+
 export function VisualComposerClient({
   initialPageId,
   initialViewport,
+  mediaOptions,
   pages: initialPages,
   siteUrl,
 }: VisualComposerClientProps) {
@@ -252,6 +424,10 @@ export function VisualComposerClient({
 
   const selectedPage = useMemo(() => getSelectedPage(pages, selectedPageId), [pages, selectedPageId])
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
+  const selectedBlockType = selectedBlock?.blockType
+  const selectedBlockPresets = getBlockPresets(selectedBlockType)
+  const showCardControls = blockSupportsCards(selectedBlockType)
+  const showPrimaryImage = blockSupportsPrimaryImage(selectedBlockType)
   const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug, selectedBlockIndex, previewVersion)
 
   function selectPage(page: PageSummary) {
@@ -269,7 +445,7 @@ export function VisualComposerClient({
     setMessage('')
   }
 
-  function updateBlockField(field: keyof PageBlock, value: string) {
+  function updateBlockField(field: keyof PageBlock, value: MediaReference | string) {
     setEditorBlock((current) => ({ ...(current || {}), [field]: value }))
     setSaveState('dirty')
   }
@@ -283,6 +459,19 @@ export function VisualComposerClient({
       },
     }))
     setSaveState('dirty')
+  }
+
+  function applyPreset(preset: ReturnType<typeof getBlockPresets>[number]) {
+    setEditorBlock((current) => ({
+      ...(current || {}),
+      ...preset.patch,
+      design: {
+        ...(current?.design || {}),
+        ...(preset.patch.design || {}),
+      },
+    }))
+    setSaveState('dirty')
+    setMessage(`Preset applied: ${preset.label}. Save to publish it.`)
   }
 
   async function saveBlock() {
@@ -448,6 +637,17 @@ export function VisualComposerClient({
 
                 {editorBlock ? (
                   <div className="visual-composer__form">
+                    <section className="visual-composer__presetGroup" aria-label="Section presets">
+                      <span>Quick presets</span>
+                      <div>
+                        {selectedBlockPresets.map((preset) => (
+                          <button key={preset.label} onClick={() => applyPreset(preset)} type="button">
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+
                     <TextField label="Section ID" onChange={(value) => updateBlockField('sectionId', value)} value={editorBlock.sectionId} />
                     <TextField label="Eyebrow" onChange={(value) => updateBlockField('eyebrow', value)} value={editorBlock.eyebrow} />
                     <TextField label="Title" onChange={(value) => updateBlockField('title', value)} value={editorBlock.title} />
@@ -494,8 +694,21 @@ export function VisualComposerClient({
                     <details className="visual-composer__editorGroup">
                       <summary>Cards, media, and mobile</summary>
                       <div className="visual-composer__fieldGrid">
-                        <SelectField label="Card density" onChange={(value) => updateDesignField('cardDensity', value)} options={selectOptions.cardDensity} value={editorBlock.design?.cardDensity} />
-                        <SelectField label="Card columns" onChange={(value) => updateDesignField('cardColumns', value)} options={selectOptions.cardColumns} value={editorBlock.design?.cardColumns} />
+                        {showCardControls ? (
+                          <>
+                            <SelectField label="Card density" onChange={(value) => updateDesignField('cardDensity', value)} options={selectOptions.cardDensity} value={editorBlock.design?.cardDensity} />
+                            <SelectField label="Card columns" onChange={(value) => updateDesignField('cardColumns', value)} options={selectOptions.cardColumns} value={editorBlock.design?.cardColumns} />
+                          </>
+                        ) : null}
+                        {showPrimaryImage ? (
+                          <MediaField label="Main image" mediaOptions={mediaOptions} onChange={(value) => updateBlockField('image', value)} value={editorBlock.image} />
+                        ) : null}
+                        <MediaField
+                          label={selectedBlockType === 'hero' ? 'Hero image' : 'Background image'}
+                          mediaOptions={mediaOptions}
+                          onChange={(value) => updateBlockField('backgroundImage', value)}
+                          value={editorBlock.backgroundImage}
+                        />
                         <SelectField label="Media size" onChange={(value) => updateDesignField('mediaSize', value)} options={selectOptions.mediaSize} value={editorBlock.design?.mediaSize} />
                         <SelectField label="Media fit" onChange={(value) => updateDesignField('mediaFit', value)} options={selectOptions.mediaFit} value={editorBlock.design?.mediaFit} />
                         <SelectField
