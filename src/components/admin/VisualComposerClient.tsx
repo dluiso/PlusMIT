@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { adminPath } from '@/lib/admin-route'
 
 type MediaReference = number | string | null | undefined
+type MediaFieldName = 'backgroundImage' | 'image'
 
 export type PageBlock = {
   backgroundImage?: MediaReference
@@ -76,6 +77,7 @@ type VisualComposerClientProps = {
 }
 
 type SaveState = 'dirty' | 'error' | 'idle' | 'saving' | 'saved'
+type UploadState = 'error' | 'idle' | 'success' | 'uploading'
 
 const blockLabels: Record<string, string> = {
   caseStudyHighlight: 'Case Study Highlight',
@@ -259,39 +261,6 @@ function TextAreaField({
   )
 }
 
-function MediaField({
-  help,
-  label,
-  mediaOptions,
-  onChange,
-  value,
-}: {
-  help?: string
-  label: string
-  mediaOptions: MediaOption[]
-  onChange: (value: string | null) => void
-  value?: MediaReference
-}) {
-  const currentValueIsListed = value ? mediaOptions.some((media) => String(media.id) === String(value)) : true
-
-  return (
-    <div className="visual-composer__field">
-      <span>{label}</span>
-      <select onChange={(event) => onChange(event.target.value || null)} value={value ? String(value) : ''}>
-        <option value="">No media selected</option>
-        {!currentValueIsListed && value ? <option value={String(value)}>{`Current media ${value}`}</option> : null}
-        {mediaOptions.map((media) => (
-          <option key={media.id} value={media.id}>
-            {media.title || media.alt || media.filename || `Media ${media.id}`}
-          </option>
-        ))}
-      </select>
-      {mediaOptions.length ? null : <small>No media assets found. Upload one first, then return here to select it.</small>}
-      {help ? <small>{help}</small> : null}
-    </div>
-  )
-}
-
 function getMediaOption(mediaOptions: MediaOption[], value?: MediaReference) {
   if (!value) return null
   return mediaOptions.find((media) => String(media.id) === String(value)) || null
@@ -305,10 +274,12 @@ function getMediaPreviewUrl(media?: MediaOption | null) {
 function MediaPreview({
   label,
   mediaOptions,
+  onSelect,
   value,
 }: {
   label: string
   mediaOptions: MediaOption[]
+  onSelect?: () => void
   value?: MediaReference
 }) {
   const media = getMediaOption(mediaOptions, value)
@@ -316,7 +287,7 @@ function MediaPreview({
   const title = media?.title || media?.alt || media?.filename || (value ? `Media ${value}` : 'No media selected')
 
   return (
-    <div className="visual-composer__mediaPreview">
+    <button className="visual-composer__mediaPreview" onClick={onSelect} type="button">
       <span>{label}</span>
       {previewUrl ? (
         <div
@@ -330,6 +301,68 @@ function MediaPreview({
       )}
       <strong>{title}</strong>
       <small>{media ? `ID ${media.id}` : 'Choose an image from Media, or upload one first.'}</small>
+    </button>
+  )
+}
+
+function MediaLibrary({
+  activeField,
+  mediaOptions,
+  mediaSearch,
+  onChoose,
+  onSearch,
+  selectedValue,
+}: {
+  activeField: MediaFieldName
+  mediaOptions: MediaOption[]
+  mediaSearch: string
+  onChoose: (value: number | string | null) => void
+  onSearch: (value: string) => void
+  selectedValue?: MediaReference
+}) {
+  const normalizedSearch = mediaSearch.trim().toLowerCase()
+  const visibleMedia = normalizedSearch
+    ? mediaOptions.filter((media) =>
+        [media.title, media.alt, media.filename, String(media.id)]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch)),
+      )
+    : mediaOptions.slice(0, 18)
+
+  return (
+    <div className="visual-composer__mediaLibrary">
+      <div className="visual-composer__mediaLibraryHeader">
+        <div>
+          <strong>{activeField === 'image' ? 'Choose main image' : 'Choose background / hero image'}</strong>
+          <small>Select an asset below. Save the block when the preview looks right.</small>
+        </div>
+        <button onClick={() => onChoose(null)} type="button">
+          Clear
+        </button>
+      </div>
+      <input
+        aria-label="Search media"
+        onChange={(event) => onSearch(event.target.value)}
+        placeholder="Search media by title, alt text, or filename"
+        type="search"
+        value={mediaSearch}
+      />
+      <div className="visual-composer__mediaGrid">
+        {visibleMedia.map((media) => {
+          const previewUrl = getMediaPreviewUrl(media)
+          const title = media.title || media.alt || media.filename || `Media ${media.id}`
+          const isSelected = selectedValue ? String(selectedValue) === String(media.id) : false
+
+          return (
+            <button data-selected={isSelected} key={media.id} onClick={() => onChoose(media.id)} type="button">
+              {previewUrl ? <span style={{ backgroundImage: `url("${previewUrl}")` }} /> : <span data-empty="true">No preview</span>}
+              <strong>{title}</strong>
+              <small>{media.filename || `ID ${media.id}`}</small>
+            </button>
+          )
+        })}
+      </div>
+      {!visibleMedia.length ? <p className="visual-composer__mediaEmpty">No media matches that search.</p> : null}
     </div>
   )
 }
@@ -472,11 +505,12 @@ function getBlockPresets(blockType?: string) {
 export function VisualComposerClient({
   initialPageId,
   initialViewport,
-  mediaOptions,
+  mediaOptions: initialMediaOptions,
   pages: initialPages,
   siteUrl,
 }: VisualComposerClientProps) {
   const [pages, setPages] = useState(initialPages)
+  const [mediaOptions, setMediaOptions] = useState(initialMediaOptions)
   const [selectedPageId, setSelectedPageId] = useState<number | string | undefined>(initialPageId)
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0)
   const [selectedPreviewSize, setSelectedPreviewSize] = useState(initialViewport)
@@ -486,6 +520,10 @@ export function VisualComposerClient({
   })
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState('')
+  const [activeMediaField, setActiveMediaField] = useState<MediaFieldName>('backgroundImage')
+  const [mediaSearch, setMediaSearch] = useState('')
+  const [mediaMessage, setMediaMessage] = useState('')
+  const [mediaUploadState, setMediaUploadState] = useState<UploadState>('idle')
   const [previewVersion, setPreviewVersion] = useState(0)
   const previewRef = useRef<HTMLIFrameElement>(null)
 
@@ -495,6 +533,8 @@ export function VisualComposerClient({
   const selectedBlockPresets = getBlockPresets(selectedBlockType)
   const showCardControls = blockSupportsCards(selectedBlockType)
   const showPrimaryImage = blockSupportsPrimaryImage(selectedBlockType)
+  const effectiveMediaField: MediaFieldName = showPrimaryImage ? activeMediaField : 'backgroundImage'
+  const effectiveMediaValue = editorBlock?.[effectiveMediaField]
   const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug, selectedBlockIndex, previewVersion)
 
   function selectPage(page: PageSummary) {
@@ -531,6 +571,67 @@ export function VisualComposerClient({
       },
     }))
     markDirty()
+  }
+
+  function chooseMedia(value: number | string | null) {
+    updateBlockField(effectiveMediaField, value)
+    setMediaUploadState('idle')
+    setMediaMessage(value ? 'Media selected. Save the block to publish it.' : 'Media cleared. Save the block to publish it.')
+  }
+
+  async function refreshMediaLibrary() {
+    setMediaUploadState('idle')
+    setMediaMessage('Refreshing media library...')
+
+    const response = await fetch('/api/visual-composer/media', {
+      credentials: 'same-origin',
+    })
+
+    if (!response.ok) {
+      setMediaUploadState('error')
+      setMediaMessage('Media library could not be refreshed.')
+      return
+    }
+
+    const result = (await response.json()) as { media?: MediaOption[] }
+    setMediaOptions(result.media || [])
+    setMediaMessage('Media library refreshed.')
+  }
+
+  async function uploadMedia(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const form = event.currentTarget
+    const formData = new FormData(form)
+
+    if (!formData.get('file')) {
+      setMediaUploadState('error')
+      setMediaMessage('Choose a file before uploading.')
+      return
+    }
+
+    setMediaUploadState('uploading')
+    setMediaMessage('Uploading media...')
+
+    const response = await fetch('/api/visual-composer/media', {
+      body: formData,
+      credentials: 'same-origin',
+      method: 'POST',
+    })
+
+    const result = (await response.json().catch(() => null)) as { error?: string; media?: MediaOption } | null
+
+    if (!response.ok || !result?.media) {
+      setMediaUploadState('error')
+      setMediaMessage(result?.error || 'Media could not be uploaded.')
+      return
+    }
+
+    setMediaOptions((current) => [result.media as MediaOption, ...current.filter((media) => String(media.id) !== String(result.media?.id))])
+    updateBlockField(effectiveMediaField, result.media.id)
+    setMediaUploadState('success')
+    setMediaMessage('Uploaded and selected. Save the block to publish it.')
+    form.reset()
   }
 
   function applyPreset(preset: ReturnType<typeof getBlockPresets>[number]) {
@@ -726,55 +827,86 @@ export function VisualComposerClient({
                       <div className="visual-composer__mediaHeader">
                         <div>
                           <span>Media</span>
-                          <small>Replace images from the Media library or upload a new asset.</small>
+                          <small>Select or upload images here without leaving the Composer.</small>
                         </div>
                         <div>
-                          <Link href={adminPath('/collections/media/create')} rel="noreferrer" target="_blank">
-                            Upload
-                          </Link>
-                          <Link href={adminPath('/collections/media')} rel="noreferrer" target="_blank">
-                            Library
-                          </Link>
+                          <button onClick={refreshMediaLibrary} type="button">
+                            Refresh
+                          </button>
                         </div>
                       </div>
-                      <div className="visual-composer__fieldGrid">
+                      <div className="visual-composer__mediaTargets" role="group" aria-label="Media target">
                         {showPrimaryImage ? (
-                          <MediaField
-                            help="Used as the main visual for split/image sections."
-                            label="Replace main image"
-                            mediaOptions={mediaOptions}
-                            onChange={(value) => updateBlockField('image', value)}
-                            value={editorBlock.image}
-                          />
+                          <button data-active={effectiveMediaField === 'image'} onClick={() => setActiveMediaField('image')} type="button">
+                            Main image
+                          </button>
                         ) : null}
-                        <MediaField
-                          help={
-                            selectedBlockType === 'hero'
-                              ? 'Use Media position = right for the dashboard image, or background for a full section background.'
-                              : 'Use Media position = background to show this behind the whole section.'
-                          }
-                          label={selectedBlockType === 'hero' ? 'Replace hero / background image' : 'Replace background image'}
-                          mediaOptions={mediaOptions}
-                          onChange={(value) => updateBlockField('backgroundImage', value)}
-                          value={editorBlock.backgroundImage}
-                        />
+                        <button
+                          data-active={effectiveMediaField === 'backgroundImage'}
+                          onClick={() => setActiveMediaField('backgroundImage')}
+                          type="button"
+                        >
+                          {selectedBlockType === 'hero' ? 'Hero / background' : 'Background'}
+                        </button>
+                      </div>
+                      <div className="visual-composer__mediaLayoutControls">
                         <SelectField
                           label="Media position"
                           onChange={(value) => updateBlockField('mediaPosition', value)}
                           options={selectOptions.mediaPosition}
                           value={editorBlock.mediaPosition}
                         />
+                        <small>
+                          {selectedBlockType === 'hero'
+                            ? 'Use right for the dashboard image, background for a full hero background, or none to hide media.'
+                            : 'Use background to place the selected image behind the section, or none to hide media.'}
+                        </small>
                       </div>
                       <div className="visual-composer__mediaPreviewGrid">
                         {showPrimaryImage ? (
-                          <MediaPreview label="Main image preview" mediaOptions={mediaOptions} value={editorBlock.image} />
+                          <MediaPreview
+                            label="Main image preview"
+                            mediaOptions={mediaOptions}
+                            onSelect={() => setActiveMediaField('image')}
+                            value={editorBlock.image}
+                          />
                         ) : null}
                         <MediaPreview
                           label={selectedBlockType === 'hero' ? 'Hero/background preview' : 'Background preview'}
                           mediaOptions={mediaOptions}
+                          onSelect={() => setActiveMediaField('backgroundImage')}
                           value={editorBlock.backgroundImage}
                         />
                       </div>
+                      <MediaLibrary
+                        activeField={effectiveMediaField}
+                        mediaOptions={mediaOptions}
+                        mediaSearch={mediaSearch}
+                        onChoose={chooseMedia}
+                        onSearch={setMediaSearch}
+                        selectedValue={effectiveMediaValue}
+                      />
+                      <form className="visual-composer__uploadForm" onSubmit={uploadMedia}>
+                        <div>
+                          <strong>Upload and select</strong>
+                          <small>Images, SVG, GIF, and PDF use the same Media rules configured in Payload.</small>
+                        </div>
+                        <input accept="image/*,application/pdf" name="file" type="file" />
+                        <div className="visual-composer__uploadFields">
+                          <label>
+                            <span>Title</span>
+                            <input name="title" placeholder="Optional title" type="text" />
+                          </label>
+                          <label>
+                            <span>Alt text</span>
+                            <input name="alt" placeholder="Optional alt text" type="text" />
+                          </label>
+                        </div>
+                        <button className="visual-composer__button visual-composer__button--primary" disabled={mediaUploadState === 'uploading'} type="submit">
+                          {mediaUploadState === 'uploading' ? 'Uploading...' : 'Upload and select'}
+                        </button>
+                      </form>
+                      {mediaMessage ? <p className={`visual-composer__message visual-composer__message--${mediaUploadState}`}>{mediaMessage}</p> : null}
                     </section>
 
                     <TextField label="Section ID" onChange={(value) => updateBlockField('sectionId', value)} value={editorBlock.sectionId} />
