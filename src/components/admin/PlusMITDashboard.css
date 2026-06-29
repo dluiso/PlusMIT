@@ -38,7 +38,7 @@
 .plusmit-dashboard h1 {
   max-width: 760px;
   margin: 0;
-  font-size: clamp(32px, 5vw, 54px);
+  font-size: 46px;
   line-height: 1;
 }
 
@@ -62,6 +62,7 @@
 
 .plusmit-dashboard__button {
   display: inline-flex;
+  width: fit-content;
   min-height: 40px;
   align-items: center;
   justify-content: center;
@@ -165,10 +166,43 @@
   font-weight: 800;
 }
 
+.plusmit-dashboard__severity {
+  width: fit-content;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 999px;
+  color: var(--theme-text) !important;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 8px;
+}
+
 .plusmit-dashboard__leadList,
 .plusmit-dashboard__watchList {
   display: grid;
   gap: 10px;
+}
+
+.plusmit-dashboard__sourceList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.plusmit-dashboard__sourceList span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 999px;
+  padding: 7px 10px;
+}
+
+.plusmit-dashboard__sourceList strong {
+  color: var(--theme-text);
 }
 
 .plusmit-dashboard__watchList--compact {
@@ -177,8 +211,41 @@
 
 .plusmit-dashboard__healthGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
   gap: 10px;
+}
+
+.plusmit-dashboard__opsGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plusmit-dashboard__opsGrid div {
+  display: grid;
+  gap: 7px;
+  min-height: 136px;
+  align-content: start;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.plusmit-dashboard__opsGrid span {
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.plusmit-dashboard__opsGrid strong {
+  color: var(--theme-text);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.plusmit-dashboard__opsGrid small {
+  color: var(--theme-elevation-600);
+  line-height: 1.35;
 }
 
 .plusmit-dashboard__healthGrid--compact {
@@ -232,6 +299,7 @@
 
 .plusmit-dashboard__inlineAction {
   display: inline-flex;
+  width: fit-content;
   margin-top: 14px;
   border: 1px solid var(--theme-success-500);
   border-radius: 999px;
@@ -267,7 +335,13 @@
 }
 
 @media (max-width: 1100px) {
+  .plusmit-dashboard {
+    max-width: 100%;
+    padding-right: 4px;
+  }
+
   .plusmit-dashboard__metrics,
+  .plusmit-dashboard__opsGrid,
   .plusmit-dashboard__status {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -278,9 +352,20 @@
 }
 
 @media (max-width: 760px) {
+  .plusmit-dashboard {
+    gap: 16px;
+    padding-bottom: 32px;
+  }
+
   .plusmit-dashboard__hero {
     align-items: stretch;
     flex-direction: column;
+    padding: 20px;
+  }
+
+  .plusmit-dashboard h1 {
+    font-size: 34px;
+    line-height: 1.05;
   }
 
   .plusmit-dashboard__heroActions {
@@ -288,9 +373,34 @@
   }
 
   .plusmit-dashboard__metrics,
+  .plusmit-dashboard__opsGrid,
   .plusmit-dashboard__quickLinks,
   .plusmit-dashboard__healthGrid,
   .plusmit-dashboard__status {
     grid-template-columns: 1fr;
+  }
+
+  .plusmit-dashboard__panel,
+  .plusmit-dashboard__metric,
+  .plusmit-dashboard__opsGrid div,
+  .plusmit-dashboard__status div {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .plusmit-dashboard__heroActions,
+  .plusmit-dashboard__button,
+  .plusmit-dashboard__inlineAction {
+    width: 100%;
+  }
+
+  .plusmit-dashboard__button,
+  .plusmit-dashboard__inlineAction {
+    justify-content: center;
+  }
+
+  .plusmit-dashboard h1 {
+    font-size: 30px;
   }
 }

@@ -25,7 +25,15 @@ type LatestLead = {
 
 type DashboardPage = {
   id?: number | string
-  layout?: { blockType?: string; hidden?: boolean | null; title?: string | null }[] | null
+  layout?: {
+    blockType?: string
+    body?: string | null
+    hidden?: boolean | null
+    primaryCta?: { label?: string | null; url?: string | null } | null
+    sectionId?: string | null
+    summary?: string | null
+    title?: string | null
+  }[] | null
   seo?: {
     description?: string | null
     noindex?: boolean | null
@@ -39,6 +47,7 @@ type DashboardPage = {
   slug?: string | null
   status?: string | null
   title?: string | null
+  updatedAt?: string
 }
 
 type DashboardMedia = {
@@ -132,6 +141,23 @@ async function getHomepage(payload: DashboardPayload): Promise<DashboardPage | n
   }
 }
 
+async function getStaleDashboardPages(payload: DashboardPayload): Promise<DashboardPage[]> {
+  try {
+    const result = await payload.find({
+      collection: 'pages',
+      depth: 0,
+      limit: 10,
+      pagination: false,
+      sort: 'updatedAt',
+      where: { status: { equals: 'published' } },
+    })
+
+    return result.docs as DashboardPage[]
+  } catch {
+    return []
+  }
+}
+
 async function getDashboardMedia(payload: DashboardPayload): Promise<DashboardMedia[]> {
   try {
     const result = await payload.find({
@@ -188,6 +214,13 @@ function formatDate(value?: string) {
   }).format(new Date(value))
 }
 
+function daysSince(value?: string) {
+  if (!value) return null
+  const time = new Date(value).getTime()
+  if (!Number.isFinite(time)) return null
+  return Math.floor((Date.now() - time) / 86_400_000)
+}
+
 function formatBytes(value?: number | null) {
   if (!value || value < 1) return '0 KB'
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`
@@ -200,6 +233,19 @@ function getLeadFormSource(lead: LatestLead) {
   }
 
   return 'Website form'
+}
+
+function getLeadSourceSummary(leads: LatestLead[]) {
+  const sourceMap = new Map<string, number>()
+
+  for (const lead of leads) {
+    const source = getLeadFormSource(lead)
+    sourceMap.set(source, (sourceMap.get(source) || 0) + 1)
+  }
+
+  return [...sourceMap.entries()]
+    .map(([source, count]) => ({ count, source }))
+    .sort((a, b) => b.count - a.count || a.source.localeCompare(b.source))
 }
 
 function hasRelationshipValue(value: unknown) {
@@ -278,13 +324,71 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[], hom
   }
 }
 
+function getEditorialQueue(recentPages: DashboardPage[], stalePages: DashboardPage[]) {
+  const issues = new Map<string, { description: string; href: string; severity: 'Needs review' | 'Watch'; title: string }>()
+
+  for (const page of stalePages) {
+    const age = daysSince(page.updatedAt)
+    if (typeof age === 'number' && age > 120) {
+      const href = `${adminPath('/collections/pages')}/${page.id}`
+      issues.set(`${href}-stale`, {
+        description: `Published page has not been updated in ${age} days.`,
+        href,
+        severity: 'Watch',
+        title: page.title || page.slug || 'Untitled page',
+      })
+    }
+  }
+
+  for (const page of recentPages) {
+    const visibleBlocks = (page.layout || []).filter((block) => !block.hidden)
+    const hiddenBlocks = (page.layout || []).filter((block) => block.hidden)
+    const href = `${adminPath('/collections/pages')}/${page.id}`
+
+    if (!page.slug?.trim()) {
+      issues.set(`${href}-slug`, {
+        description: 'Page has no public slug configured.',
+        href,
+        severity: 'Needs review',
+        title: page.title || 'Untitled page',
+      })
+    }
+
+    if (hiddenBlocks.length > 0 && hiddenBlocks.length >= visibleBlocks.length) {
+      issues.set(`${href}-hidden`, {
+        description: `${hiddenBlocks.length} hidden sections may be masking the page structure.`,
+        href,
+        severity: 'Watch',
+        title: page.title || page.slug || 'Untitled page',
+      })
+    }
+
+    const thinBlocks = visibleBlocks.filter((block) => {
+      if (['stats', 'trustBar', 'contactForm'].includes(block.blockType || '')) return false
+      return !block.summary?.trim() && !block.body?.trim() && !block.primaryCta?.label?.trim()
+    })
+
+    if (thinBlocks.length > 0) {
+      issues.set(`${href}-thin`, {
+        description: `${thinBlocks.length} visible sections need supporting copy or a clear action.`,
+        href,
+        severity: 'Needs review',
+        title: page.title || page.slug || 'Untitled page',
+      })
+    }
+  }
+
+  return [...issues.values()].slice(0, 8)
+}
+
 export async function PlusMITDashboard(props: AdminViewServerProps) {
   const payload = props.initPageResult.req.payload as unknown as DashboardPayload
-  const [counts, latestLeads, setup, dashboardPages, dashboardMedia, homepage] = await Promise.all([
+  const [counts, latestLeads, setup, dashboardPages, stalePages, dashboardMedia, homepage] = await Promise.all([
     Promise.all(metrics.map(async (metric) => [metric.slug, await safeCount(payload, metric.slug)] as const)),
     getLatestLeads(payload),
     getSetupStatus(payload),
     getDashboardPages(payload),
+    getStaleDashboardPages(payload),
     getDashboardMedia(payload),
     getHomepage(payload),
   ])
@@ -303,8 +407,22 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
 
   const countMap = Object.fromEntries(counts) as Record<CountSlug, number>
   const contentInsights = getContentInsights(dashboardPages, dashboardMedia, homepage)
+  const editorialQueue = getEditorialQueue(dashboardPages, stalePages)
   const homeHasHero = contentInsights.homeVisibleBlocks.some((block) => block.blockType === 'hero' || block.title)
   const homeHasConversion = contentInsights.homeVisibleBlocks.some((block) => block.blockType === 'contactForm' || block.blockType === 'ctaBanner')
+  const totalContentItems = countMap.pages + countMap.services + countMap.posts + countMap.industries + countMap['case-studies']
+  const activeLeadCount = newLeads + reviewingLeads + contactedLeads
+  const handledLeadCount = closedLeads + spamLeads
+  const leadSourceSummary = getLeadSourceSummary(latestLeads)
+  const dashboardPagesWithIssues = new Set([...contentInsights.layoutIssues, ...contentInsights.seoIssues].map((issue) => issue.href)).size
+  const operationalMetrics = [
+    { label: 'Total CMS items', value: totalContentItems, detail: 'Pages, services, resources, industries, and case studies.' },
+    { label: 'Published content', value: publishedPages + publishedServices, detail: 'Live pages and services currently visible to visitors.' },
+    { label: 'Active leads', value: activeLeadCount, detail: 'New, reviewing, or contacted submissions.' },
+    { label: 'Handled leads', value: handledLeadCount, detail: 'Closed or spam submissions.' },
+    { label: 'Pages needing review', value: dashboardPagesWithIssues + editorialQueue.length, detail: 'Recent pages with layout, SEO, or editorial attention items.' },
+    { label: 'Media attention', value: contentInsights.mediaMissingAlt.length + contentInsights.largeMedia.length, detail: 'Recent assets missing alt text or over the size target.' },
+  ]
   const performanceChecks = [
     { label: 'No oversized media in latest assets', ready: contentInsights.largeMedia.length === 0 },
     { label: 'Recent media has alt text', ready: contentInsights.mediaMissingAlt.length === 0 },
@@ -339,6 +457,22 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
             <strong>{countMap[metric.slug] ?? 0}</strong>
           </Link>
         ))}
+      </section>
+
+      <section className="plusmit-dashboard__panel">
+        <div className="plusmit-dashboard__panelHeader">
+          <h2>Operational snapshot</h2>
+          <p>CMS workload, content readiness, and intake activity.</p>
+        </div>
+        <div className="plusmit-dashboard__opsGrid">
+          {operationalMetrics.map((metric) => (
+            <div key={metric.label}>
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+              <small>{metric.detail}</small>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="plusmit-dashboard__grid">
@@ -377,6 +511,16 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
               <p className="plusmit-dashboard__empty">No lead submissions yet.</p>
             )}
           </div>
+          {leadSourceSummary.length ? (
+            <div className="plusmit-dashboard__sourceList" aria-label="Recent lead sources">
+              {leadSourceSummary.slice(0, 4).map((item) => (
+                <span key={item.source}>
+                  <strong>{item.count}</strong>
+                  {item.source}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -416,6 +560,41 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
             <span data-ready={setup.publicEmail !== 'Not set'}>Public email configured</span>
             <span data-ready={setup.ctaLabel !== 'Not set'}>Primary CTA configured</span>
             <span data-ready={Boolean(setup.themeMode)}>Theme mode configured</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="plusmit-dashboard__grid">
+        <div className="plusmit-dashboard__panel">
+          <div className="plusmit-dashboard__panelHeader">
+            <h2>Editorial QA queue</h2>
+            <p>Content structure, freshness, and action clarity checks.</p>
+          </div>
+          <div className="plusmit-dashboard__watchList">
+            {editorialQueue.length ? (
+              editorialQueue.map((issue) => (
+                <Link href={issue.href} key={`${issue.href}-${issue.description}`}>
+                  <strong>{issue.title}</strong>
+                  <small className="plusmit-dashboard__severity">{issue.severity}</small>
+                  <span>{issue.description}</span>
+                </Link>
+              ))
+            ) : (
+              <p className="plusmit-dashboard__empty">No editorial QA issues found in the reviewed pages.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="plusmit-dashboard__panel">
+          <div className="plusmit-dashboard__panelHeader">
+            <h2>Review coverage</h2>
+            <p>Pages sampled for operational and editorial readiness.</p>
+          </div>
+          <div className="plusmit-dashboard__healthGrid">
+            <div><span>Recent pages sampled</span><strong>{dashboardPages.length}</strong></div>
+            <div><span>Oldest published sampled</span><strong>{stalePages.length}</strong></div>
+            <div><span>Editorial items</span><strong>{editorialQueue.length}</strong></div>
+            <div><span>Homepage blocks</span><strong>{contentInsights.homeVisibleBlocks.length}</strong></div>
           </div>
         </div>
       </section>

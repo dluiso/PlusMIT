@@ -845,7 +845,7 @@ function getPagePublishChecks(page?: PageSummary | null, draft?: PageSettingsDra
   ]
 }
 
-function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSettingsDraft, siteUrl: string): SeoDiagnostic[] {
+function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSettingsDraft, siteUrl: string, socialImage?: MediaOption | null): SeoDiagnostic[] {
   if (!page) return []
 
   const seoTitle = draft.seoTitle.trim()
@@ -855,6 +855,8 @@ function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSett
   const canonicalUrl = draft.canonicalUrl.trim()
   const slug = draft.slug.trim()
   const hasSocialImage = Boolean(draft.openGraphImage || draft.twitterImage || getRelationshipId(page.seo?.openGraphImage) || getRelationshipId(page.seo?.twitterImage))
+  const socialImageWarnings = getMediaWarnings(socialImage)
+  const defaultCanonical = getPublicCanonicalUrl(siteUrl, slug || page.slug)
   const diagnostics: SeoDiagnostic[] = []
 
   diagnostics.push(
@@ -882,16 +884,23 @@ function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSett
 
   diagnostics.push({
     label: 'Social sharing',
-    message: hasSocialImage
-      ? 'Social image is configured.'
-      : 'Missing social image. Add Open Graph or Twitter/X media before sharing.',
-    severity: hasSocialImage ? 'good' : 'warning',
+    message: hasSocialImage && !socialImageWarnings.length
+      ? 'Social image is configured and passes media checks.'
+      : hasSocialImage
+        ? `Social image needs review: ${socialImageWarnings.join(', ')}.`
+        : 'Missing social image. Add Open Graph or Twitter/X media before sharing.',
+    severity: hasSocialImage && !socialImageWarnings.length ? 'good' : 'warning',
   })
 
   diagnostics.push({
     label: 'Social copy',
-    message: openGraphTitle || openGraphDescription ? 'Custom social title or description is configured.' : 'Using SEO title and description as social fallback.',
-    severity: openGraphTitle || openGraphDescription ? 'good' : 'warning',
+    message:
+      openGraphTitle || openGraphDescription
+        ? openGraphTitle.length > 70 || openGraphDescription.length > 200
+          ? 'Social copy exists but may be too long for cards.'
+          : 'Custom social title or description is configured.'
+        : 'Using SEO title and description as social fallback.',
+    severity: openGraphTitle.length > 70 || openGraphDescription.length > 200 ? 'warning' : openGraphTitle || openGraphDescription ? 'good' : 'warning',
   })
 
   diagnostics.push({
@@ -901,7 +910,7 @@ function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSett
       : draft.nofollow
         ? 'Nofollow is enabled. Links on this page may not pass signals.'
         : 'Indexing controls are open.',
-    severity: draft.noindex || draft.nofollow ? 'warning' : 'good',
+    severity: draft.noindex && draft.status === 'published' ? 'error' : draft.noindex || draft.nofollow ? 'warning' : 'good',
   })
 
   diagnostics.push({
@@ -918,18 +927,38 @@ function getSeoDiagnostics(page: PageSummary | null | undefined, draft: PageSett
 
   if (canonicalUrl) {
     const canonicalIsValid = /^https?:\/\//i.test(canonicalUrl)
+    let canonicalOriginMatches = false
+    if (canonicalIsValid) {
+      try {
+        canonicalOriginMatches = new URL(canonicalUrl).origin === new URL(defaultCanonical).origin
+      } catch {
+        canonicalOriginMatches = false
+      }
+    }
     diagnostics.push({
       label: 'Canonical URL',
       message: canonicalIsValid ? canonicalUrl : 'Canonical should be a full http(s) URL.',
-      severity: canonicalIsValid ? 'good' : 'warning',
+      severity: canonicalIsValid && canonicalOriginMatches ? 'good' : 'warning',
     })
   } else {
     diagnostics.push({
       label: 'Canonical URL',
-      message: `Default canonical: ${getPublicCanonicalUrl(siteUrl, slug || page.slug)}`,
+      message: `Default canonical: ${defaultCanonical}`,
       severity: 'good',
     })
   }
+
+  diagnostics.push({
+    label: 'Schema',
+    message: draft.schemaType ? `${draft.schemaType} selected.` : 'Schema type is missing.',
+    severity: draft.schemaType ? 'good' : 'warning',
+  })
+
+  diagnostics.push({
+    label: 'Publication state',
+    message: draft.status === 'published' ? 'Published settings are being reviewed.' : 'Draft page. Finish QA before publishing.',
+    severity: draft.status === 'published' ? 'good' : 'warning',
+  })
 
   return diagnostics
 }
@@ -1439,15 +1468,16 @@ export function VisualComposerClient({
   const selectedPage = useMemo(() => getSelectedPage(pages, selectedPageId), [pages, selectedPageId])
   const selectedBlock = selectedPage?.layout?.[selectedBlockIndex] || null
   const selectedBlockType = selectedBlock?.blockType
+  const selectedBlockCount = selectedPage?.layout?.length || 0
   const publishChecks = useMemo(() => getPagePublishChecks(selectedPage, pageSettings), [selectedPage, pageSettings])
   const publishReadyCount = publishChecks.filter((check) => check.ready).length
-  const seoDiagnostics = useMemo(() => getSeoDiagnostics(selectedPage, pageSettings, siteUrl), [pageSettings, selectedPage, siteUrl])
-  const seoBlockingIssues = seoDiagnostics.filter((item) => item.severity === 'error').length
-  const seoWarningIssues = seoDiagnostics.filter((item) => item.severity === 'warning').length
   const socialImage = useMemo(
     () => getMediaOption(mediaOptions, pageSettings.openGraphImage || pageSettings.twitterImage) || getSocialImage(mediaOptions, selectedPage),
     [mediaOptions, pageSettings.openGraphImage, pageSettings.twitterImage, selectedPage],
   )
+  const seoDiagnostics = useMemo(() => getSeoDiagnostics(selectedPage, pageSettings, siteUrl, socialImage), [pageSettings, selectedPage, siteUrl, socialImage])
+  const seoBlockingIssues = seoDiagnostics.filter((item) => item.severity === 'error').length
+  const seoWarningIssues = seoDiagnostics.filter((item) => item.severity === 'warning').length
   const socialImageUrl = getMediaPreviewUrl(socialImage)
   const selectedBlockChecks = useMemo(() => getBlockQualityChecks(editorBlock, mediaOptions), [editorBlock, mediaOptions])
   const selectedBlockReadyCount = selectedBlockChecks.filter((check) => check.ready).length
@@ -1469,6 +1499,8 @@ export function VisualComposerClient({
   const hasUnsavedBlockChanges = saveState === 'dirty'
   const structureBusy = structureState === 'saving'
   const structureActionsDisabled = structureBusy || hasUnsavedBlockChanges
+  const canMoveSelectedUp = selectedBlockIndex > 0
+  const canMoveSelectedDown = selectedBlockIndex < selectedBlockCount - 1
   const previewUrl = publicUrlFromSlug(siteUrl, selectedPage?.slug, selectedBlockIndex, previewVersion)
 
   function canLeaveCurrentBlock() {
@@ -1529,6 +1561,16 @@ export function VisualComposerClient({
     setPageSettings((current) => ({ ...current, [field]: value }))
     setPageSettingsState('dirty')
     setPageSettingsMessage('Unsaved page settings.')
+  }
+
+  function copySeoToSocial() {
+    setPageSettings((current) => ({
+      ...current,
+      openGraphDescription: current.openGraphDescription || current.seoDescription,
+      openGraphTitle: current.openGraphTitle || current.seoTitle || current.title,
+    }))
+    setPageSettingsState('dirty')
+    setPageSettingsMessage('SEO copy applied to social fields. Save page settings to publish it.')
   }
 
   function choosePageMedia(field: 'openGraphImage' | 'twitterImage', value: number | string | null) {
@@ -1601,6 +1643,18 @@ export function VisualComposerClient({
     }
 
     void applyLayoutAction({ template: pageTemplate, type: 'appendTemplate' }, `${templateLabel} sections appended.`)
+  }
+
+  function selectAdjacentBlock(direction: -1 | 1) {
+    const nextIndex = selectedBlockIndex + direction
+    const nextBlock = selectedPage?.layout?.[nextIndex]
+    if (!nextBlock) return
+    selectBlock(nextBlock, nextIndex)
+  }
+
+  function moveSelectedBlock(toIndex: number, notice: string) {
+    if (!selectedBlock) return
+    void applyLayoutAction({ fromIndex: selectedBlockIndex, toIndex, type: 'move' }, notice)
   }
 
   function markDirty() {
@@ -2000,6 +2054,12 @@ export function VisualComposerClient({
                   <small className="visual-composer__seoCounter">{getSeoCounterText(pageSettings.seoTitle, 60)}</small>
                   <TextAreaField label="Meta description" onChange={(value) => updatePageSetting('seoDescription', value)} value={pageSettings.seoDescription} />
                   <small className="visual-composer__seoCounter">{getSeoCounterText(pageSettings.seoDescription, 160)}</small>
+                  <div className="visual-composer__seoActions">
+                    <button onClick={copySeoToSocial} type="button">
+                      Use SEO copy for social
+                    </button>
+                    <small>Fills empty Open Graph fields from the current SEO title and description.</small>
+                  </div>
                   <TextField label="Open Graph title" onChange={(value) => updatePageSetting('openGraphTitle', value)} value={pageSettings.openGraphTitle} />
                   <TextAreaField label="Open Graph description" onChange={(value) => updatePageSetting('openGraphDescription', value)} value={pageSettings.openGraphDescription} />
                   <div className="visual-composer__mediaPreviewGrid visual-composer__mediaPreviewGrid--social">
@@ -2209,6 +2269,43 @@ export function VisualComposerClient({
 
                 {editorBlock ? (
                   <div className="visual-composer__form">
+                    <section className="visual-composer__selectedActions" aria-label="Selected block workflow">
+                      <div>
+                        <strong>
+                          Block {selectedBlockIndex + 1} of {selectedBlockCount}
+                        </strong>
+                        <small>{structureActionsDisabled ? 'Save changes before changing page structure.' : 'Navigate, duplicate, move, or toggle this section.'}</small>
+                      </div>
+                      <div>
+                        <button disabled={!canMoveSelectedUp || hasUnsavedBlockChanges} onClick={() => selectAdjacentBlock(-1)} type="button">
+                          Previous
+                        </button>
+                        <button disabled={!canMoveSelectedDown || hasUnsavedBlockChanges} onClick={() => selectAdjacentBlock(1)} type="button">
+                          Next
+                        </button>
+                        <button disabled={structureActionsDisabled || !canMoveSelectedUp} onClick={() => moveSelectedBlock(selectedBlockIndex - 1, 'Block moved up.')} type="button">
+                          Move up
+                        </button>
+                        <button disabled={structureActionsDisabled || !canMoveSelectedDown} onClick={() => moveSelectedBlock(selectedBlockIndex + 1, 'Block moved down.')} type="button">
+                          Move down
+                        </button>
+                        <button disabled={structureActionsDisabled} onClick={() => void applyLayoutAction({ index: selectedBlockIndex, type: 'duplicate' }, 'Block duplicated.')} type="button">
+                          Duplicate
+                        </button>
+                        <button
+                          disabled={structureActionsDisabled}
+                          onClick={() =>
+                            void applyLayoutAction(
+                              { hidden: !selectedBlock?.hidden, index: selectedBlockIndex, type: 'toggleHidden' },
+                              selectedBlock?.hidden ? 'Block shown.' : 'Block hidden.',
+                            )
+                          }
+                          type="button"
+                        >
+                          {selectedBlock?.hidden ? 'Show' : 'Hide'}
+                        </button>
+                      </div>
+                    </section>
                     <section className="visual-composer__qualityPanel" aria-label="Selected block quality checks">
                       <div className="visual-composer__qualityHeader">
                         <strong>Block QA</strong>
