@@ -6,7 +6,7 @@ type CountSlug = 'case-studies' | 'industries' | 'lead-submissions' | 'media' | 
 
 type DashboardPayload = {
   count: (options: { collection: CountSlug; where?: Record<string, unknown> }) => Promise<{ totalDocs: number }>
-  find: (options: { collection: CountSlug; depth?: number; limit: number; pagination?: boolean; sort: string }) => Promise<{ docs: unknown[] }>
+  find: (options: { collection: CountSlug; depth?: number; limit: number; pagination?: boolean; sort?: string; where?: Record<string, unknown> }) => Promise<{ docs: unknown[] }>
   findGlobal: (options: { slug: 'branding' | 'site-settings' }) => Promise<Record<string, unknown>>
 }
 
@@ -117,6 +117,21 @@ async function getDashboardPages(payload: DashboardPayload): Promise<DashboardPa
   }
 }
 
+async function getHomepage(payload: DashboardPayload): Promise<DashboardPage | null> {
+  try {
+    const result = await payload.find({
+      collection: 'pages',
+      depth: 0,
+      limit: 1,
+      where: { slug: { equals: 'home' } },
+    })
+
+    return (result.docs[0] as DashboardPage | undefined) || null
+  } catch {
+    return null
+  }
+}
+
 async function getDashboardMedia(payload: DashboardPayload): Promise<DashboardMedia[]> {
   try {
     const result = await payload.find({
@@ -173,6 +188,12 @@ function formatDate(value?: string) {
   }).format(new Date(value))
 }
 
+function formatBytes(value?: number | null) {
+  if (!value || value < 1) return '0 KB'
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`
+  return `${(value / 1024 / 1024).toFixed(1)} MB`
+}
+
 function getLeadFormSource(lead: LatestLead) {
   if (typeof lead.formSource === 'object' && lead.formSource && 'name' in lead.formSource) {
     return lead.formSource.name || 'Website form'
@@ -187,7 +208,7 @@ function hasRelationshipValue(value: unknown) {
   return typeof value === 'object' && 'id' in value
 }
 
-function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
+function getContentInsights(pages: DashboardPage[], media: DashboardMedia[], homepage: DashboardPage | null) {
   const publishedPages = pages.filter((page) => page.status === 'published')
   const pagesWithSocialImage = publishedPages.filter((page) => hasRelationshipValue(page.seo?.openGraphImage) || hasRelationshipValue(page.seo?.twitterImage))
   const layoutIssues = pages
@@ -236,10 +257,16 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
     .filter((issue): issue is { description: string; href: string; issues: string; seoTitle: string; title: string } => Boolean(issue))
 
   const mediaMissingAlt = media.filter((item) => !item.alt?.trim())
-  const largeMedia = media.filter((item) => typeof item.filesize === 'number' && item.filesize > 800 * 1024)
+  const largeMedia = media
+    .filter((item) => typeof item.filesize === 'number' && item.filesize > 800 * 1024)
+    .sort((a, b) => (b.filesize || 0) - (a.filesize || 0))
   const nonImageMedia = media.filter((item) => item.mimeType && !item.mimeType.startsWith('image/') && item.mimeType !== 'application/pdf')
+  const homePage = homepage || pages.find((page) => page.slug === 'home' || page.slug === null || page.slug === '')
+  const homeVisibleBlocks = (homePage?.layout || []).filter((block) => !block.hidden)
 
   return {
+    homePage,
+    homeVisibleBlocks,
     largeMedia,
     layoutIssues,
     mediaMissingAlt,
@@ -253,12 +280,13 @@ function getContentInsights(pages: DashboardPage[], media: DashboardMedia[]) {
 
 export async function PlusMITDashboard(props: AdminViewServerProps) {
   const payload = props.initPageResult.req.payload as unknown as DashboardPayload
-  const [counts, latestLeads, setup, dashboardPages, dashboardMedia] = await Promise.all([
+  const [counts, latestLeads, setup, dashboardPages, dashboardMedia, homepage] = await Promise.all([
     Promise.all(metrics.map(async (metric) => [metric.slug, await safeCount(payload, metric.slug)] as const)),
     getLatestLeads(payload),
     getSetupStatus(payload),
     getDashboardPages(payload),
     getDashboardMedia(payload),
+    getHomepage(payload),
   ])
   const [publishedPages, draftPages, newLeads, publishedServices] = await Promise.all([
     safeCountWhere(payload, 'pages', { status: { equals: 'published' } }),
@@ -266,9 +294,23 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
     safeCountWhere(payload, 'lead-submissions', { status: { equals: 'new' } }),
     safeCountWhere(payload, 'services', { status: { equals: 'published' } }),
   ])
+  const [reviewingLeads, contactedLeads, closedLeads, spamLeads] = await Promise.all([
+    safeCountWhere(payload, 'lead-submissions', { status: { equals: 'reviewing' } }),
+    safeCountWhere(payload, 'lead-submissions', { status: { equals: 'contacted' } }),
+    safeCountWhere(payload, 'lead-submissions', { status: { equals: 'closed' } }),
+    safeCountWhere(payload, 'lead-submissions', { status: { equals: 'spam' } }),
+  ])
 
   const countMap = Object.fromEntries(counts) as Record<CountSlug, number>
-  const contentInsights = getContentInsights(dashboardPages, dashboardMedia)
+  const contentInsights = getContentInsights(dashboardPages, dashboardMedia, homepage)
+  const homeHasHero = contentInsights.homeVisibleBlocks.some((block) => block.blockType === 'hero' || block.title)
+  const homeHasConversion = contentInsights.homeVisibleBlocks.some((block) => block.blockType === 'contactForm' || block.blockType === 'ctaBanner')
+  const performanceChecks = [
+    { label: 'No oversized media in latest assets', ready: contentInsights.largeMedia.length === 0 },
+    { label: 'Recent media has alt text', ready: contentInsights.mediaMissingAlt.length === 0 },
+    { label: 'Published pages have SEO metadata', ready: contentInsights.seoIssues.length === 0 },
+    { label: 'Homepage has hero and conversion path', ready: homeHasHero && homeHasConversion },
+  ]
 
   return (
     <main className="plusmit-dashboard">
@@ -408,8 +450,8 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
 
         <div className="plusmit-dashboard__panel">
           <div className="plusmit-dashboard__panelHeader">
-            <h2>Media status</h2>
-            <p>Recent assets that can affect accessibility or speed.</p>
+            <h2>Performance status</h2>
+            <p>Recent assets and content checks that affect speed.</p>
           </div>
           <div className="plusmit-dashboard__healthGrid">
             <div><span>Missing alt</span><strong>{contentInsights.mediaMissingAlt.length}</strong></div>
@@ -417,11 +459,59 @@ export async function PlusMITDashboard(props: AdminViewServerProps) {
             <div><span>Recent assets</span><strong>{dashboardMedia.length}</strong></div>
             <div><span>Unusual types</span><strong>{contentInsights.nonImageMedia.length}</strong></div>
           </div>
-          {contentInsights.mediaMissingAlt[0] ? (
-            <Link className="plusmit-dashboard__inlineAction" href={adminPath('/collections/media')}>
-              Review media alt text
-            </Link>
+          <div className="plusmit-dashboard__checkList plusmit-dashboard__checkList--spaced">
+            {performanceChecks.map((check) => (
+              <span data-ready={check.ready} key={check.label}>{check.label}</span>
+            ))}
+          </div>
+          {contentInsights.largeMedia.length ? (
+            <div className="plusmit-dashboard__watchList plusmit-dashboard__watchList--compact">
+              {contentInsights.largeMedia.slice(0, 3).map((item) => (
+                <Link href={adminPath('/collections/media')} key={`${item.id || item.filename}`}>
+                  <strong>{item.title || item.filename || 'Untitled media'}</strong>
+                  <span>{formatBytes(item.filesize)} - {item.mimeType || 'unknown type'}</span>
+                </Link>
+              ))}
+            </div>
           ) : null}
+          <Link className="plusmit-dashboard__inlineAction" href={adminPath('/collections/media')}>
+            Review media library
+          </Link>
+        </div>
+      </section>
+
+      <section className="plusmit-dashboard__grid">
+        <div className="plusmit-dashboard__panel">
+          <div className="plusmit-dashboard__panelHeader">
+            <h2>Publishing checklist</h2>
+            <p>Homepage and public content readiness.</p>
+          </div>
+          <div className="plusmit-dashboard__checkList">
+            <span data-ready={Boolean(contentInsights.homePage)}>Homepage exists</span>
+            <span data-ready={contentInsights.homePage?.status === 'published'}>Homepage published</span>
+            <span data-ready={homeHasHero}>Homepage has hero/title</span>
+            <span data-ready={homeHasConversion}>Homepage has CTA/contact path</span>
+            <span data-ready={contentInsights.socialReady >= contentInsights.publishedPages.length}>Published pages have social images</span>
+          </div>
+        </div>
+
+        <div className="plusmit-dashboard__panel">
+          <div className="plusmit-dashboard__panelHeader">
+            <h2>Lead workflow</h2>
+            <p>Current intake status distribution.</p>
+          </div>
+          <div className="plusmit-dashboard__healthGrid">
+            <div><span>New</span><strong>{newLeads}</strong></div>
+            <div><span>Reviewing</span><strong>{reviewingLeads}</strong></div>
+            <div><span>Contacted</span><strong>{contactedLeads}</strong></div>
+            <div><span>Closed</span><strong>{closedLeads}</strong></div>
+          </div>
+          {spamLeads ? (
+            <p className="plusmit-dashboard__note">{spamLeads} lead submissions are marked as spam.</p>
+          ) : null}
+          <Link className="plusmit-dashboard__inlineAction" href={adminPath('/collections/lead-submissions')}>
+            Review leads
+          </Link>
         </div>
       </section>
 

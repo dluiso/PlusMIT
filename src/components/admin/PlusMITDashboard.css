@@ -209,6 +209,10 @@
   gap: 10px;
 }
 
+.plusmit-dashboard__checkList--spaced {
+  margin-top: 14px;
+}
+
 .plusmit-dashboard__checkList span {
   border: 1px solid var(--theme-elevation-150);
   border-radius: 8px;
@@ -235,6 +239,13 @@
   font-weight: 800;
   padding: 8px 12px;
   text-decoration: none;
+}
+
+.plusmit-dashboard__note {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  margin-top: 14px !important;
+  padding: 12px 14px;
 }
 
 .plusmit-dashboard__status {
